@@ -46,4 +46,251 @@
                 <!-- 進度顯示 -->
                 <div id="progressArea" class="hidden mt-4">
                     <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div id="progres
+                        <div id="progressBar" class="progress-bar bg-blue-600 h-full w-0"></div>
+                    </div>
+                    <p id="progressStatus" class="text-[10px] text-slate-500 mt-2 font-bold italic">準備處理照片: 0%</p>
+                </div>
+            </label>
+
+            <!-- API 診斷訊息區 (顯示連線狀態與代碼) -->
+            <div id="apiInfo" class="hidden p-4 rounded-2xl text-xs font-bold border-l-4 shadow-sm">
+                <p id="apiMsg"></p>
+            </div>
+
+            <!-- 唯一按鈕：啟動 AI 設計 -->
+            <button id="generateBtn" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-xl hover:bg-black active:scale-95 transition-all shadow-xl shadow-slate-200 flex justify-center items-center">
+                <span id="btnText">啟動 AI 智能設計</span>
+                <div id="loader" class="hidden ml-3 w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            </button>
+        </div>
+    </div>
+
+    <!-- 生成結果區 -->
+    <div id="resultArea" class="hidden max-w-6xl mx-auto mt-20 space-y-16 pb-20">
+        <div class="grid md:grid-cols-2 gap-12">
+            <div class="flex flex-col items-center">
+                <span class="mb-4 bg-slate-800 text-white px-5 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">直式宣傳版 (9:16)</span>
+                <div class="canvas-container w-full max-w-[400px]">
+                    <canvas id="canvasP" width="1080" height="1920"></canvas>
+                </div>
+                <button onclick="download('canvasP')" class="mt-4 text-blue-600 font-bold hover:underline">儲存直式海報</button>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="mb-4 bg-slate-800 text-white px-5 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">橫式宣傳版 (16:9)</span>
+                <div class="canvas-container w-full">
+                    <canvas id="canvasL" width="1920" height="1080"></canvas>
+                </div>
+                <button onclick="download('canvasL')" class="mt-4 text-blue-600 font-bold hover:underline">儲存橫式海報</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化日期時間
+        document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('eventTime').value = "14:00";
+
+        let finalImg = null;
+        let isRemoving = false;
+
+        // 1. 照片去背與進度條邏輯
+        document.getElementById('photoUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const progressArea = document.getElementById('progressArea');
+            const progressBar = document.getElementById('progressBar');
+            const progressStatus = document.getElementById('progressStatus');
+            const uploadUI = document.getElementById('uploadUI');
+
+            isRemoving = true;
+            uploadUI.classList.add('hidden');
+            progressArea.classList.remove('hidden');
+
+            try {
+                const blob = await imglyRemoveBackground(file, {
+                    progress: (fraction) => {
+                        const p = Math.round(fraction * 100);
+                        progressBar.style.width = p + "%";
+                        progressStatus.innerText = `AI 智慧去背中: ${p}%`;
+                    }
+                });
+                
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = () => {
+                    finalImg = img;
+                    isRemoving = false;
+                    progressStatus.innerText = "✅ 照片處理完成";
+                    progressStatus.className = "text-[10px] text-green-600 mt-2 font-bold";
+                };
+                img.src = url;
+
+            } catch (err) {
+                console.error(err);
+                progressStatus.innerText = "❌ 去背失敗，改用原圖繼續";
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    const img = new Image();
+                    img.onload = () => { finalImg = img; isRemoving = false; };
+                    img.src = re.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 2. 世界級藝術風格定義
+        const VIBES = ["梵谷油畫", "包浩斯幾何", "莫蘭迪灰調", "賽博龐克霓虹", "瑞士極簡主義", "日系禪意風格"];
+
+        // 3. 串接 Gemini 並生成海報
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const key = document.getElementById('apiKey').value.trim();
+            const title = document.getElementById('eventTitle').value.trim();
+            const name = document.getElementById('speakerName').value.trim();
+            const apiInfo = document.getElementById('apiInfo');
+            const apiMsg = document.getElementById('apiMsg');
+
+            if (!key || !title || !name || !finalImg) {
+                alert("請填寫所有資料並上傳照片");
+                return;
+            }
+
+            if (isRemoving) return alert("請等待照片去背完成。");
+
+            // UI 狀態切換
+            const btnText = document.getElementById('btnText');
+            const loader = document.getElementById('loader');
+            btnText.innerText = "正在連線 AI 設計師...";
+            loader.classList.remove('hidden');
+            apiInfo.classList.add('hidden');
+
+            const style = VIBES[Math.floor(Math.random() * VIBES.length)];
+
+            // Prompt 設定
+            const prompt = `你是一位資深海報設計師。活動「${title}」，講者「${name}」。
+            風格指定：「${style}」。
+            請決定配色與排版方案，僅回傳 JSON，海報內容必須全為繁體中文：
+            {
+                "bg": "背景主色16進位",
+                "bg2": "背景漸層色16進位",
+                "text": "文字主色16進位",
+                "accent": "裝飾線條色16進位",
+                "slogan": "一句8字內繁體中文創意口號",
+                "font": "serif 或 sans-serif"
+            }
+            嚴禁回傳任何英文。`;
+
+            try {
+                // 使用您指定的 gemini-2.5-flash
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw { status: response.status, message: errData.error ? errData.error.message : "未知錯誤" };
+                }
+
+                // 顯示成功狀態
+                apiInfo.className = "p-4 rounded-2xl text-xs font-bold border-l-4 bg-green-50 border-green-500 text-green-700 block";
+                apiMsg.innerText = "✅ API 連線成功：Gemini 已成功產出設計方案。";
+
+                const data = await response.json();
+                const rawText = data.candidates[0].content.parts[0].text;
+                const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                const design = JSON.parse(jsonMatch[0]);
+
+                // 4. 繪圖渲染
+                draw('canvasP', title, name, design);
+                draw('canvasL', title, name, design);
+
+                document.getElementById('resultArea').classList.remove('hidden');
+                btnText.innerText = "啟動 AI 智能設計";
+                loader.classList.add('hidden');
+                window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 50, behavior: 'smooth' });
+
+            } catch (err) {
+                console.error(err);
+                // 顯示詳細錯誤代碼訊息
+                apiInfo.className = "p-4 rounded-2xl text-xs font-bold border-l-4 bg-red-50 border-red-500 text-red-700 block";
+                apiMsg.innerText = `❌ API 串接失敗：[代碼 ${err.status || '網路錯誤'}] ${err.message}`;
+                btnText.innerText = "重新啟動 AI 設計";
+                loader.classList.add('hidden');
+            }
+        });
+
+        function draw(id, title, name, design) {
+            const cvs = document.getElementById(id);
+            const ctx = cvs.getContext('2d');
+            const w = cvs.width;
+            const h = cvs.height;
+            const isP = h > w;
+
+            // 背景漸層
+            const grad = ctx.createLinearGradient(0, 0, w, h);
+            grad.addColorStop(0, design.bg);
+            grad.addColorStop(1, design.bg2);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            // 藝術裝飾
+            ctx.globalAlpha = 0.2;
+            ctx.fillStyle = design.accent;
+            ctx.beginPath();
+            ctx.arc(w * Math.random(), h * 0.2, w * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            // 繪製照片
+            if (finalImg) {
+                const ratio = isP ? (w * 0.95) / finalImg.width : (h * 0.9) / finalImg.height;
+                const dw = finalImg.width * ratio;
+                const dh = finalImg.height * ratio;
+                const dx = isP ? (w - dw) / 2 : w - dw;
+                const dy = h - dh;
+                ctx.drawImage(finalImg, dx, dy, dw, dh);
+            }
+
+            // 文字渲染
+            ctx.fillStyle = design.text;
+            ctx.textAlign = isP ? "center" : "left";
+            const x = isP ? w / 2 : w * 0.08;
+            const fontBase = design.font === "serif" ? "Noto Serif TC" : "Noto Sans TC";
+
+            // 活動名稱
+            ctx.font = `900 ${w * 0.09}px "${fontBase}"`;
+            ctx.fillText(title, x, h * 0.16);
+
+            // AI 標語
+            ctx.fillStyle = design.accent;
+            ctx.font = `700 ${w * 0.045}px "Noto Sans TC"`;
+            ctx.fillText(design.slogan, x, h * 0.24);
+
+            // 講者姓名
+            ctx.fillStyle = design.text;
+            ctx.font = `900 ${w * 0.07}px "${fontBase}"`;
+            ctx.fillText(`講者｜${name}`, x, h * 0.35);
+
+            // 日期時間
+            const dateStr = document.getElementById('eventDate').value.replace(/-/g, '/');
+            const timeStr = document.getElementById('eventTime').value;
+            ctx.font = `bold ${w * 0.035}px "Noto Sans TC"`;
+            ctx.fillText(`${dateStr}  ${timeStr}`, x, h * 0.43);
+
+            // 邊框線
+            ctx.strokeStyle = design.accent;
+            ctx.lineWidth = 15;
+            ctx.strokeRect(40, 40, w - 80, h - 80);
+        }
+
+        function download(id) {
+            const a = document.createElement('a');
+            a.download = `AI海報-${id}.png`;
+            a.href = document.getElementById(id).toDataURL('image/png');
+            a.click();
+        }
+    </script>
+</body>
+</html>
