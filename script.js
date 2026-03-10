@@ -63,4 +63,114 @@ async function callGeminiDesigner(isRandom) {
             風格目標：${isRandom ? chosenVibe : '自動決定'}。
             請決定設計基因，僅回傳 JSON 格式，不准有其他文字：
             {
-              "bgColor": "背景色16進
+              "bgColor": "背景色16進位",
+              "textColor": "文字色16進位",
+              "accentColor": "裝飾色16進位",
+              "slogan": "8字內繁體中文標語",
+              "fontStyle": "sans-serif或serif",
+              "layoutType": "split或center或corner"
+            }`;
+
+            const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+
+            const data = await resp.json();
+            const rawText = data.candidates[0].content.parts[0].text;
+            
+            // 關鍵修正：使用正規表達式抓取 JSON，防止 AI 多廢話
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                designResult = JSON.parse(jsonMatch[0]);
+                aiStatus.innerText = `✨ AI 設計完成：已套用「${designResult.slogan}」方案`;
+            }
+        } catch (err) {
+            console.error("AI 串接失敗，切換至保底設計:", err);
+            aiStatus.innerText = "⚠️ API 異常，已由系統自動產出精選設計";
+        }
+    } else {
+        aiStatus.innerText = "💡 未輸入金鑰，系統隨機選配風格";
+    }
+
+    // 執行繪製 (無論如何都會執行到這裡)
+    renderPoster('pCanvas', title, name, designResult);
+    renderPoster('lCanvas', title, name, designResult);
+
+    document.getElementById('resultArea').classList.remove('hidden');
+    btnText.innerText = "啟動 AI 智能設計";
+    loader.classList.add('hidden');
+    
+    setTimeout(() => {
+        window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 50, behavior: 'smooth' });
+    }, 200);
+}
+
+function renderPoster(id, title, name, design) {
+    const cvs = document.getElementById(id);
+    const ctx = cvs.getContext('2d');
+    const w = cvs.width;
+    const h = cvs.height;
+    const isP = h > w;
+
+    // 1. 背景
+    ctx.fillStyle = design.bgColor || "#FFFFFF";
+    ctx.fillRect(0, 0, w, h);
+
+    // 2. 隨機裝飾元素 (AI 決定色彩)
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = design.accentColor || "#CCCCCC";
+    ctx.beginPath();
+    ctx.arc(w * Math.random(), h * 0.2, w * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+
+    // 3. 畫照片 (放在文字下方)
+    if (globalImg) {
+        const ratio = isP ? (w * 0.9) / globalImg.width : (h * 0.85) / globalImg.height;
+        const dw = globalImg.width * ratio;
+        const dh = globalImg.height * ratio;
+        const dx = isP ? (w - dw) / 2 : w - dw;
+        const dy = h - dh;
+        ctx.drawImage(globalImg, dx, dy, dw, dh);
+    }
+
+    // 4. 畫文字
+    ctx.fillStyle = design.textColor || "#000000";
+    ctx.textAlign = (design.layoutType === "center" || isP) ? "center" : "left";
+    const x = (ctx.textAlign === "center") ? w / 2 : w * 0.08;
+    const fontMain = (design.fontStyle === "serif") ? "Noto Serif TC" : "Noto Sans TC";
+
+    // 標題
+    ctx.font = `900 ${w * 0.085}px "${fontMain}"`;
+    ctx.fillText(title, x, h * 0.18);
+
+    // 標語
+    ctx.fillStyle = design.accentColor || "#666666";
+    ctx.font = `700 ${w * 0.042}px "Noto Sans TC"`;
+    ctx.fillText(design.slogan || "精彩活動，不容錯過", x, h * 0.25);
+
+    // 講者
+    ctx.fillStyle = design.textColor || "#000000";
+    ctx.font = `900 ${w * 0.065}px "${fontMain}"`;
+    ctx.fillText(`主講｜${name}`, x, h * 0.35);
+
+    // 日期時間
+    const date = document.getElementById('date').value.replace(/-/g, '/');
+    const time = document.getElementById('time').value;
+    ctx.font = `bold ${w * 0.035}px "Noto Sans TC"`;
+    ctx.fillText(`${date} AT ${time}`, x, h * 0.42);
+
+    // 邊框
+    ctx.strokeStyle = design.accentColor || "#EEEEEE";
+    ctx.lineWidth = 15;
+    ctx.strokeRect(40, 40, w - 80, h - 80);
+}
+
+function download(id) {
+    const link = document.createElement('a');
+    link.download = `AI海報-${Date.now()}.png`;
+    link.href = document.getElementById(id).toDataURL('image/png');
+    link.click();
+}
