@@ -3,73 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 海報生成系統</title>
+    <title>AI 視覺設計師</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
-        .canvas-container { display: none; }
-        canvas { max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .progress-bar { width: 0%; transition: width 0.3s ease-in-out; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: #f0f2f5; }
+        canvas { max-width: 100%; height: auto; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        .design-card { background: white; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body class="py-10 px-4">
-    <div class="max-w-xl mx-auto bg-white p-8 rounded-[2rem] shadow-xl">
-        <h1 class="text-3xl font-black text-center mb-6 tracking-tight text-slate-800">AI 海報生成器</h1>
+    <div class="max-w-xl mx-auto design-card p-8">
+        <h1 class="text-3xl font-black text-center mb-2 tracking-tighter">AI 視覺設計師</h1>
+        <p class="text-center text-gray-400 text-sm mb-8">Gemini 1.5 將接管色彩與排版設計</p>
         
         <div class="space-y-4">
-            <!-- API Key -->
-            <div>
-                <label class="block text-xs font-bold text-slate-400 mb-1 ml-2">GEMINI API 金鑰</label>
-                <input type="password" id="apiKey" class="w-full p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="貼上您的 API 金鑰">
-            </div>
-
-            <!-- 活動與姓名 -->
-            <input type="text" id="eventTitle" class="w-full p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="活動名稱（例如：AI 未來論壇）">
-            <input type="text" id="name" class="w-full p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="主講人姓名">
+            <input type="password" id="apiKey" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="貼上您的 Gemini API 金鑰">
+            <input type="text" id="eventTitle" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="活動主題">
+            <input type="text" id="name" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="講者姓名">
             
-            <!-- 日期時間 -->
             <div class="grid grid-cols-2 gap-4">
-                <input type="date" id="date" class="p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500 text-sm">
-                <input type="time" id="time" class="p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500 text-sm">
+                <input type="date" id="date" class="p-4 bg-gray-50 rounded-2xl text-sm border-none">
+                <input type="time" id="time" class="p-4 bg-gray-50 rounded-2xl text-sm border-none">
             </div>
 
-            <!-- 上傳區域與進度條 -->
-            <div class="relative border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:bg-slate-50 transition cursor-pointer">
+            <div class="relative border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:bg-gray-50 transition">
                 <input type="file" id="photoUpload" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
-                <div id="uploadInfo">
-                    <p id="uploadText" class="text-blue-600 font-bold">點擊上傳主講人照片</p>
-                    <p class="text-xs text-slate-400 mt-1">建議使用清晰的半身照</p>
-                </div>
-                <!-- 進度條容器 -->
-                <div id="progressWrapper" class="hidden mt-4">
-                    <div class="w-full bg-slate-100 rounded-full h-2.5">
-                        <div id="progressBar" class="progress-bar bg-blue-600 h-2.5 rounded-full"></div>
-                    </div>
-                    <p id="progressPercent" class="text-[10px] text-slate-500 mt-1">0%</p>
+                <p id="uploadText" class="text-blue-600 font-bold">點擊上傳主講人照片</p>
+                <div id="progressContainer" class="hidden mt-2 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
+                    <div id="progressBar" class="bg-blue-600 h-full w-0 transition-all"></div>
                 </div>
             </div>
 
-            <!-- 生成按鈕 -->
-            <button id="generateBtn" class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg hover:bg-black active:scale-[0.98] transition-all flex justify-center items-center">
-                <span id="btnText">生成專屬宣傳海報</span>
-                <div id="btnLoader" class="hidden ml-3 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <button id="generateBtn" class="w-full py-5 bg-black text-white rounded-2xl font-black text-xl hover:scale-[1.02] transition shadow-xl flex justify-center items-center">
+                <span id="btnText">讓 AI 開始設計</span>
+                <div id="loader" class="hidden ml-3 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             </button>
-            <p id="msg" class="text-center text-xs text-slate-400 mt-2 font-medium"></p>
+            <p id="aiStatus" class="text-center text-xs text-blue-500 font-bold mt-2"></p>
         </div>
     </div>
 
-    <!-- 結果區 -->
-    <div id="resultArea" class="canvas-container max-w-6xl mx-auto mt-16 grid md:grid-cols-2 gap-10">
-        <div class="flex flex-col items-center">
-            <h3 class="mb-4 font-black text-slate-400 text-xs tracking-widest uppercase">直式宣傳版 (9:16)</h3>
-            <canvas id="pCanvas" width="1080" height="1920" class="w-full max-w-xs"></canvas>
-            <button onclick="download('pCanvas')" class="mt-4 text-blue-600 font-bold hover:underline text-sm">下載直式海報</button>
-        </div>
-        <div class="flex flex-col items-center">
-            <h3 class="mb-4 font-black text-slate-400 text-xs tracking-widest uppercase">橫式活動版 (16:9)</h3>
-            <canvas id="lCanvas" width="1920" height="1080" class="w-full max-w-lg"></canvas>
-            <button onclick="download('lCanvas')" class="mt-4 text-blue-600 font-bold hover:underline text-sm">下載橫式海報</button>
+    <!-- 結果 -->
+    <div id="resultArea" class="hidden max-w-6xl mx-auto mt-16 space-y-12">
+        <div class="grid md:grid-cols-2 gap-10">
+            <div class="flex flex-col items-center">
+                <p class="mb-4 text-xs font-bold text-gray-400">AI 直式構圖</p>
+                <canvas id="pCanvas" width="1080" height="1920" class="w-72"></canvas>
+                <button onclick="download('pCanvas')" class="mt-4 text-sm font-bold underline">下載</button>
+            </div>
+            <div class="flex flex-col items-center">
+                <p class="mb-4 text-xs font-bold text-gray-400">AI 橫式構圖</p>
+                <canvas id="lCanvas" width="1920" height="1080" class="w-full max-w-lg"></canvas>
+                <button onclick="download('lCanvas')" class="mt-4 text-sm font-bold underline">下載</button>
+            </div>
         </div>
     </div>
 
