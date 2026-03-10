@@ -3,220 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>皇冠大使對焦系統 - 數位領導力</title>
+    <title>皇冠大使對焦系統 | 贏在開發</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://accounts.google.com/gsi/client" onload="initClient()"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background: #f0f2f5; }
-        .gold-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); }
-        .card { background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
-        .input-group label { font-weight: 700; color: #374151; font-size: 0.9rem; }
-        .input-style { border: 1px solid #d1d5db; border-radius: 10px; padding: 12px; width: 100%; margin-top: 4px; transition: 0.3s; }
-        .input-style:focus { border-color: #1e40af; ring: 2px; outline: none; box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.2); }
-        .btn-action { background: #d97706; color: white; padding: 15px 30px; border-radius: 12px; font-weight: bold; width: 100%; transition: 0.3s; cursor: pointer; }
-        .btn-action:hover { background: #b45309; transform: translateY(-2px); }
-        .btn-action:disabled { background: #9ca3af; cursor: not-allowed; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .gold-border { border: 2px solid #d4af37; }
+        .bg-royal { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+        .btn-gold { background: linear-gradient(to right, #d4af37, #f97316); color: white; transition: 0.3s; }
+        .btn-gold:hover { transform: scale(1.02); box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
+        .card { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        input, select { background: #334155 !important; border: 1px solid #475569 !important; color: white !important; }
+        .loading { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
-<body class="pb-20">
+<body class="min-h-screen p-4 md:p-8">
 
-    <div class="max-w-3xl mx-auto px-4 pt-8">
-        <!-- Header Persona -->
-        <div class="gold-gradient text-white p-10 rounded-t-3xl text-center relative overflow-hidden">
-            <div class="relative z-10">
-                <h1 class="text-4xl font-extrabold mb-3">💎 皇冠大使對焦室</h1>
-                <p class="text-blue-100 text-lg">「不是在賣產品，是在賣一個改變生命的機會。」</p>
-                <div id="userProfile" class="mt-4 text-sm hidden text-yellow-300">已成功連接 Google 帳戶</div>
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 mb-4">
+                👑 皇冠大使對焦系統
+            </h1>
+            <p class="text-gray-400 text-lg tracking-widest">「領袖的深度，決定團隊的高度。」</p>
+        </header>
+
+        <!-- API Key Login Bar (模擬登入感) -->
+        <div class="card p-4 rounded-xl mb-8 flex flex-col md:flex-row items-center gap-4">
+            <div class="flex-1 w-full">
+                <input type="password" id="apiKey" class="w-full p-2 rounded-lg text-sm" placeholder="請貼上您的 Google Gemini API Key (僅需輸入一次)">
             </div>
-            <div class="absolute top-0 right-0 opacity-10 text-9xl font-bold">AMWAY</div>
+            <button onclick="saveKey()" class="w-full md:w-auto px-6 py-2 bg-blue-600 rounded-lg text-sm font-bold hover:bg-blue-500 transition">
+                記憶權限
+            </button>
+            <span id="keyStatus" class="text-xs text-green-400"></span>
         </div>
 
-        <div class="card p-8 -mt-6">
-            <!-- Auth Section -->
-            <div class="mb-10 p-6 border-2 border-dashed border-blue-100 rounded-2xl bg-blue-50">
-                <h3 class="font-bold text-blue-800 mb-2 text-center">第一步：啟動數位權限</h3>
-                <p class="text-xs text-center text-gray-500 mb-4">請填入您在 Google Cloud 申請的 Client ID 以啟動登入功能</p>
-                <input type="text" id="clientId" class="input-style mb-4" placeholder="請在此貼上您的 Google Client ID">
-                <button onclick="handleAuthClick()" id="loginBtn" class="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-bold flex items-center justify-center hover:bg-gray-50 transition">
-                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-6 h-6 mr-2">
-                    登入 Google 帳號授權 Gemini
-                </button>
-            </div>
-
-            <!-- Form Section -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="input-group">
-                    <label>對象姓名</label>
-                    <input type="text" id="name" class="input-style" placeholder="王大明">
-                </div>
-                <div class="input-group">
-                    <label>年齡</label>
-                    <input type="number" id="age" class="input-style" placeholder="30">
-                </div>
-                <div class="input-group">
-                    <label>職業</label>
-                    <input type="text" id="job" class="input-style" placeholder="傳統製造業主管">
-                </div>
-                <div class="input-group">
-                    <label>是否已破題安麗？</label>
-                    <select id="isRevealed" class="input-style">
-                        <option value="完全沒提過">完全沒提過</option>
-                        <option value="提過但不深入">提過但不深入</option>
-                        <option value="知道我有在經營">知道我有在經營</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>是否參加過活動？</label>
-                    <select id="hasAttended" class="input-style">
-                        <option value="從未參加過">從未參加過</option>
-                        <option value="看過線上分享">看過線上分享</option>
-                        <option value="參加過實體家庭聚會">參加過實體家庭聚會</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>是否見過上手領導人？</label>
-                    <select id="metUpline" class="input-style">
-                        <option value="尚未見過面">尚未見過面</option>
-                        <option value="已經深談過一次">已經深談過一次</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2 input-group">
-                    <label>我希望邀約他參加什麼活動？</label>
-                    <input type="text" id="targetEvent" class="input-style" placeholder="下週二的創業商機論壇 (OPP)">
-                </div>
-                <div class="md:col-span-2 input-group">
-                    <label>我希望推薦他什麼產品？</label>
-                    <input type="text" id="targetProduct" class="input-style" placeholder="雙倍健與魚油、淨水器">
-                </div>
-            </div>
-
-            <div class="mt-10">
-                <button onclick="generateStrategy()" id="generateBtn" class="btn-action shadow-lg" disabled>
-                    開始進行大師級對焦演練
-                </button>
-            </div>
-        </div>
-
-        <!-- Result Section -->
-        <div id="resultArea" class="mt-8 hidden">
-            <div class="card p-8 border-l-8 border-amber-500">
-                <div class="flex items-center mb-6">
-                    <div class="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-white font-bold text-xl mr-4">金</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Left Side: Prospect Info -->
+            <section class="card p-6 rounded-2xl shadow-2xl">
+                <h2 class="text-xl font-bold mb-6 text-yellow-500 flex items-center">
+                    <span class="mr-2">📋</span> 對象基本資料
+                </h2>
+                <div class="space-y-4">
                     <div>
-                        <h2 class="text-xl font-bold text-gray-800">皇冠大使的實戰策略建議</h2>
-                        <p class="text-sm text-gray-500">記住：邀約是為了對方的夢想，而不是你的業績。</p>
+                        <label class="block text-xs text-gray-400 mb-1">姓名</label>
+                        <input type="text" id="name" class="w-full p-3 rounded-lg" placeholder="例如：林大衛">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">年齡</label>
+                            <input type="text" id="age" class="w-full p-3 rounded-lg" placeholder="35">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">職業</label>
+                            <input type="text" id="job" class="w-full p-3 rounded-lg" placeholder="業務經理">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">是否已破題安麗？</label>
+                        <select id="isRevealed" class="w-full p-3 rounded-lg">
+                            <option value="尚未破題">尚未破題 (保持神祕感)</option>
+                            <option value="已知道，不排斥">已知道，觀感中立</option>
+                            <option value="已知道，有負面印象">已知道，有排斥感</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">是否參加過活動？</label>
+                        <select id="hasAttended" class="w-full p-3 rounded-lg">
+                            <option value="從未參加">從未參加</option>
+                            <option value="參加過小型聚會">參加過小型聚會 (Home Party)</option>
+                            <option value="參加過大型大會">參加過大型年會/表揚大會</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">是否見過上手領導人？</label>
+                        <select id="metUpline" class="w-full p-3 rounded-lg">
+                            <option value="否">否 (尚未推崇領導人)</option>
+                            <option value="是">是 (已建立初步信任)</option>
+                        </select>
+                    </div>
+                    <div class="pt-4 border-t border-gray-700">
+                        <label class="block text-xs text-yellow-600 font-bold mb-1">我希望邀約的活動</label>
+                        <input type="text" id="targetEvent" class="w-full p-3 rounded-lg border-yellow-900" placeholder="例如：週三健康講座、OPP">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-yellow-600 font-bold mb-1">我希望推薦的產品</label>
+                        <input type="text" id="targetProduct" class="w-full p-3 rounded-lg" placeholder="例如：紐崔萊雙倍潔、淨水器">
                     </div>
                 </div>
-                <hr class="mb-6">
-                <div id="output" class="text-gray-700 leading-loose space-y-4"></div>
-            </div>
+
+                <button onclick="askMaster()" id="mainBtn" class="w-full mt-8 py-4 btn-gold rounded-xl font-bold text-lg shadow-lg">
+                    立即生成大師級邀約稿
+                </button>
+            </section>
+
+            <!-- Right Side: AI Master Output -->
+            <section class="flex flex-col">
+                <div id="loading" class="hidden text-center py-20 card rounded-2xl">
+                    <div class="loading text-4xl mb-4">💎</div>
+                    <p class="text-yellow-500 animate-pulse">正在為您運用數億兆級別的商業邏輯進行對焦...</p>
+                </div>
+
+                <div id="result" class="hidden card p-8 rounded-2xl flex-1 overflow-y-auto max-h-[700px] border-l-4 border-yellow-500">
+                    <h3 class="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-2">皇冠大使的實戰策略</h3>
+                    <div id="outputContent" class="space-y-6 text-gray-300 leading-relaxed">
+                        <!-- Content will be injected here -->
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 
     <script>
-        let client;
-        let accessToken = null;
-
-        function initClient() {
-            // 初始化時不帶 clientID，等用戶輸入
-        }
-
-        function handleAuthClick() {
-            const clientId = document.getElementById('clientId').value;
-            if (!clientId) {
-                alert("請先輸入您的 Google Client ID。這可以在 Google Cloud Console 取得。");
-                return;
+        // 頁面加載時檢查是否有存過的 Key
+        window.onload = () => {
+            const savedKey = localStorage.getItem('amway_gemini_key');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+                document.getElementById('keyStatus').innerText = "✅ 權限已自動載入";
             }
+        };
 
-            client = google.accounts.oauth2.initTokenClient({
-                client_id: clientId,
-                scope: 'https://www.googleapis.com/auth/generative-language',
-                callback: (response) => {
-                    if (response.access_token) {
-                        accessToken = response.access_token;
-                        document.getElementById('userProfile').classList.remove('hidden');
-                        document.getElementById('generateBtn').disabled = false;
-                        document.getElementById('loginBtn').innerText = "✅ 已連結 Google Gemini";
-                        document.getElementById('loginBtn').classList.add('bg-green-50');
-                    }
-                },
-            });
-            client.requestAccessToken();
+        function saveKey() {
+            const key = document.getElementById('apiKey').value;
+            if (key) {
+                localStorage.setItem('amway_gemini_key', key);
+                alert("金鑰已記憶在瀏覽器，下次開啟無需再輸入！");
+                document.getElementById('keyStatus').innerText = "✅ 權限已自動載入";
+            }
         }
 
-        async function generateStrategy() {
-            if (!accessToken) return;
+        async function askMaster() {
+            const key = document.getElementById('apiKey').value;
+            if (!key) { return alert("請輸入 API Key！這就像是創業的門票。"); }
 
-            const btn = document.getElementById('generateBtn');
-            const output = document.getElementById('output');
-            const resultArea = document.getElementById('resultArea');
+            const btn = document.getElementById('mainBtn');
+            const resultDiv = document.getElementById('result');
+            const loadingDiv = document.getElementById('loading');
+            const output = document.getElementById('outputContent');
 
             btn.disabled = true;
-            btn.innerText = '正在調研對象並制定致勝話術...';
+            loadingDiv.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
 
-            const formData = {
-                name: document.getElementById('name').value || '這位朋友',
-                age: document.getElementById('age').value || '合適的年齡',
-                job: document.getElementById('job').value || '目前這份職業',
+            const data = {
+                name: document.getElementById('name').value || '朋友',
+                age: document.getElementById('age').value || '適婚適育年齡',
+                job: document.getElementById('job').value || '上班族',
                 isRevealed: document.getElementById('isRevealed').value,
                 hasAttended: document.getElementById('hasAttended').value,
                 metUpline: document.getElementById('metUpline').value,
-                targetEvent: document.getElementById('targetEvent').value || '未來的成功慶功宴',
-                targetProduct: document.getElementById('targetProduct').value || '全方位營養組合'
+                targetEvent: document.getElementById('targetEvent').value || '創業商機分享會',
+                targetProduct: document.getElementById('targetProduct').value || '紐崔萊基礎營養組合'
             };
 
-            const prompt = `你是一位安麗事業的傳奇企業家（皇冠大使），率領萬人團隊，財富數億。你的專業是透過深度溝通啟發他人夢想。
-現在請針對以下對象進行「對焦」並給出實戰建議：
-- 姓名：${formData.name}
-- 年齡：${formData.age}
-- 職業：${formData.job}
-- 現況：${formData.isRevealed}、${formData.hasAttended}、${formData.metUpline}
-- 目標活動：${formData.targetEvent}
-- 目標產品：${formData.targetProduct}
+            const prompt = `你現在是一位安麗直銷領域的頂尖皇冠大使，曾率領數萬人致富，資產雄厚。請針對以下個案，給出專業對焦建議：
+對象資料：姓名 ${data.name}、年齡 ${data.age}、職業 ${data.job}、破題現況 ${data.isRevealed}、參加過活動 ${data.hasAttended}、見過領導人 ${data.metUpline}。
+目標：邀約參加「${data.targetEvent}」並推薦「${data.targetProduct}」。
 
-請以「皇冠大使」極具感染力且專業的口吻，提供以下結構的建議（用台灣繁體中文）：
-
-1. [策略思維] 分析這個人的背景，他在傳統行業可能面臨的危機是什麼？
-2. [給夢想話術] 如何在聊天中不經意地帶入夢想與自由的價值？（逐字稿）
-3. [正式邀約活動] 針對「${formData.targetEvent}」的邀約話術，要強調這不是會議，是個機會。（逐字稿）
-4. [專業Q&A] 模擬如果他說「我沒時間」或「是直銷嗎？」你要如何以高度優雅地回覆？
-5. [產品專業建議] 如何結合他的生活需求，推薦「${formData.targetProduct}」？`;
+請提供：
+1. **策略心法**：分析此人的缺口（痛點）。
+2. **啟發夢想話術**：如何跟他聊未來的可能性（給夢想）。
+3. **邀約對話逐字稿**：包含「主動邀約」與「對方猶豫時的回覆」。
+4. **產品零售建議**：如何結合他的健康/生活需求專業地帶入 ${data.targetProduct}。
+5. **後續跟進建議**：會議結束後的一句話。
+口吻要熱情、專業、高格局、且充滿說服力（台灣繁體中文）。`;
 
             try {
-                const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
 
-                const resData = await response.json();
-                if (resData.error) throw new Error(resData.error.message);
+                const json = await response.json();
+                const text = json.candidates[0].content.parts[0].text;
 
-                const text = resData.candidates[0].content.parts[0].text;
-                resultArea.classList.remove('hidden');
-                output.innerHTML = formatAIResponse(text);
-                window.scrollTo({ top: resultArea.offsetTop - 20, behavior: 'smooth' });
-
-            } catch (error) {
-                alert('API 呼叫失敗：' + error.message);
+                output.innerHTML = formatText(text);
+                loadingDiv.classList.add('hidden');
+                resultDiv.classList.remove('hidden');
+            } catch (e) {
+                alert("發生錯誤：請檢查 Key 是否正確或網路狀態。");
             } finally {
                 btn.disabled = false;
-                btn.innerText = '開始進行大師級對焦演練';
             }
         }
 
-        function formatAIResponse(text) {
-            return text
-                .replace(/\n/g, '<br>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-900 bg-yellow-100 px-1">$1</strong>')
-                .replace(/### (.*?)/g, '<h3 class="text-xl font-bold mt-6 mb-2 text-amber-700 border-b-2 border-amber-200">$1</h3>')
-                .replace(/[1-5]\./g, (match) => `<span class="inline-block bg-blue-800 text-white rounded-full w-6 h-6 text-center leading-6 mr-2">${match[0]}</span>`);
+        function formatText(t) {
+            return t.replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<b class="text-yellow-400">$1</b>')
+                    .replace(/### (.*?)/g, '<h4 class="text-xl font-bold text-white mt-4">$1</h4>');
         }
     </script>
 </body>
