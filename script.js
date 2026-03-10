@@ -1,181 +1,159 @@
-// 初始化：設定目前時間
+// 預設日期
 window.onload = () => {
-    const now = new Date();
-    document.getElementById('date').value = now.toISOString().split('T')[0];
-    document.getElementById('time').value = now.toTimeString().slice(0, 5);
+    const n = new Date();
+    document.getElementById('date').value = n.toISOString().split('T')[0];
+    document.getElementById('time').value = n.toTimeString().slice(0, 5);
 };
 
-let selectedImg = null;
+let userImg = null;
 
-// 定義世界級藝術風格
-const ART_STYLES = [
-    { name: "極簡包浩斯", bg: "#F2F2F2", text: "#1A1A1A", accent: "#E63946", font: "Noto Sans TC" },
-    { name: "印象派梵谷", bg: "#1B4965", text: "#FFFFFF", accent: "#F9C74F", font: "Noto Sans TC" },
-    { name: "現代瑞士", bg: "#FFFFFF", text: "#000000", accent: "#2563EB", font: "Noto Sans TC" },
-    { name: "日系和風", bg: "#F8F1E7", text: "#433D3C", accent: "#BC6C25", font: "Noto Sans TC" },
-    { name: "霓虹未來", bg: "#0D0D0D", text: "#00F5FF", accent: "#FF007F", font: "Noto Sans TC" }
-];
-
-// 照片上傳處理 (包含進度條)
-document.getElementById('photoUpload').addEventListener('change', function(e) {
+// 照片處理 (包含進度顯示)
+document.getElementById('photoUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    const wrapper = document.getElementById('progressWrapper');
     const bar = document.getElementById('progressBar');
-    const percent = document.getElementById('progressPercent');
-    const statusText = document.getElementById('uploadText');
-
-    // 重設並顯示進度條
-    wrapper.classList.remove('hidden');
-    bar.style.width = '0%';
-    percent.innerText = '0%';
-    statusText.innerText = "⏳ 正在處理照片...";
-
+    document.getElementById('progressContainer').classList.remove('hidden');
+    
     const reader = new FileReader();
-
-    // 監聽讀取進度
-    reader.onprogress = (event) => {
-        if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            bar.style.width = progress + '%';
-            percent.innerText = progress + '%';
-        }
+    reader.onprogress = (ev) => {
+        if (ev.lengthComputable) bar.style.width = (ev.loaded / ev.total * 100) + '%';
     };
-
-    reader.onload = (event) => {
+    reader.onload = (ev) => {
         const img = new Image();
         img.onload = () => {
-            selectedImg = img;
-            bar.style.width = '100%';
-            percent.innerText = '100%';
-            statusText.innerText = "✅ 照片上傳成功";
-            document.getElementById('msg').innerText = "照片載入完成。";
+            userImg = img;
+            document.getElementById('uploadText').innerText = "✅ 照片已就緒";
         };
-        img.src = event.target.result;
+        img.src = ev.target.result;
     };
-
-    reader.onerror = () => {
-        alert("照片讀取失敗，請重新嘗試。");
-    };
-
     reader.readAsDataURL(file);
 });
 
-// 生成海報邏輯
+// 點擊生成
 document.getElementById('generateBtn').addEventListener('click', async () => {
-    const key = document.getElementById('apiKey').value.trim();
-    const title = document.getElementById('eventTitle').value.trim();
-    const name = document.getElementById('name').value.trim();
+    const key = document.getElementById('apiKey').value;
+    const title = document.getElementById('eventTitle').value;
+    const name = document.getElementById('name').value;
 
-    if (!title || !name) return alert("請填寫活動名稱與姓名！");
-    if (!selectedImg) return alert("請先上傳照片！");
+    if (!key || !title || !name || !userImg) return alert("請填寫所有資料並上傳照片");
 
-    const btnText = document.getElementById('btnText');
-    const loader = document.getElementById('btnLoader');
-    btnText.innerText = "正在設計海報...";
+    const status = document.getElementById('aiStatus');
+    const loader = document.getElementById('loader');
+    status.innerText = "🤖 Gemini 正在設計視覺風格與配色...";
     loader.classList.remove('hidden');
 
-    const style = ART_STYLES[Math.floor(Math.random() * ART_STYLES.length)];
-    let slogan = "跨越邊界，看見未來"; // 保底標語
+    try {
+        // --- 請 AI 擔任視覺設計師 ---
+        const prompt = `你是一位資深平面設計大師。請為活動「${title}」設計海報視覺。
+        請根據活動主題，決定最適合的配色與排版邏輯。
+        請嚴格只回傳以下 JSON 格式，不要有任何解釋文字：
+        {
+          "bgColor": "背景色16進位",
+          "textColor": "標題文字色16進位",
+          "accentColor": "裝飾元素色16進位",
+          "slogan": "一句8字內繁體中文標語",
+          "decorationType": "幾何圖形類型(circle/stripe/dots)",
+          "layoutMode": "構圖模式(split/center/asymmetric)"
+        }`;
 
-    // 呼叫 Gemini API (修正為 v1 穩定路徑)
-    if (key) {
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: `你是一位資深文案。活動名稱「${title}」，講者「${name}」。請寫一句非常有質感的繁體中文海報標語（8個字內），只回傳文字內容。` }] }]
-                })
-            });
-            const data = await response.json();
-            if (data.candidates && data.candidates[0].content.parts[0].text) {
-                slogan = data.candidates[0].content.parts[0].text.trim();
-            }
-        } catch (err) {
-            console.error("API 請求失敗，使用保底標語。");
-        }
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        
+        const data = await resp.json();
+        const aiResponse = data.candidates[0].content.parts[0].text;
+        const design = JSON.parse(aiResponse.replace(/```json|```/g, ''));
+
+        status.innerText = `✨ AI 設計師已套用「${design.slogan}」風格方案`;
+        
+        // 開始依據 AI 的指令繪製
+        render('pCanvas', title, name, design);
+        render('lCanvas', title, name, design);
+
+        document.getElementById('resultArea').classList.remove('hidden');
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    } catch (err) {
+        console.error(err);
+        alert("AI 設計過程出錯，請檢查金鑰或嘗試重新生成");
+    } finally {
+        loader.classList.add('hidden');
     }
-
-    // 繪製海報
-    renderPoster('pCanvas', title, name, slogan, style);
-    renderPoster('lCanvas', title, name, slogan, style);
-
-    document.getElementById('resultArea').style.display = 'grid';
-    btnText.innerText = "生成專屬宣傳海報";
-    loader.classList.add('hidden');
-
-    window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 50, behavior: 'smooth' });
 });
 
-function renderPoster(canvasId, title, name, slogan, style) {
-    const cvs = document.getElementById(canvasId);
+function render(id, title, name, design) {
+    const cvs = document.getElementById(id);
     const ctx = cvs.getContext('2d');
     const w = cvs.width;
     const h = cvs.height;
-    const isPortrait = h > w;
+    const isP = h > w;
 
-    // 1. 背景與裝飾
-    ctx.fillStyle = style.bg;
+    // 1. AI 決定背景色
+    ctx.fillStyle = design.bgColor;
     ctx.fillRect(0, 0, w, h);
 
-    // 2. 風格裝飾色塊
-    ctx.globalAlpha = 0.1;
-    ctx.fillStyle = style.accent;
-    ctx.beginPath();
-    ctx.arc(isPortrait ? w : 0, 0, w * 0.8, 0, Math.PI * 2);
-    ctx.fill();
+    // 2. AI 決定裝飾元素
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = design.accentColor;
+    if (design.decorationType === "circle") {
+        ctx.beginPath(); ctx.arc(w*Math.random(), h*Math.random(), w*0.5, 0, Math.PI*2); ctx.fill();
+    } else if (design.decorationType === "stripe") {
+        for(let i=0; i<w; i+=w/10) ctx.fillRect(i, 0, 10, h);
+    } else {
+        for(let i=0; i<100; i++) ctx.fillRect(Math.random()*w, Math.random()*h, 5, 5);
+    }
     ctx.globalAlpha = 1.0;
 
-    // 3. 繪製照片 (填滿指定區域)
-    if (selectedImg) {
-        const ratio = isPortrait ? (w * 0.9) / selectedImg.width : (h * 0.8) / selectedImg.height;
-        const dw = selectedImg.width * ratio;
-        const dh = selectedImg.height * ratio;
-        const dx = isPortrait ? (w - dw) / 2 : w - dw - 50;
-        const dy = h - dh;
-        
-        ctx.save();
-        // 簡單裁切效果
-        ctx.drawImage(selectedImg, dx, dy, dw, dh);
-        ctx.restore();
+    // 3. AI 決定構圖模式 (Layout Logic)
+    let textX, textAlign, imgX, imgY;
+    if (design.layoutMode === "split" && !isP) { // 橫式分割
+        textX = w * 0.08; textAlign = "left"; imgX = w * 0.5; imgY = h * 0.1;
+    } else if (design.layoutMode === "asymmetric") { // 非對稱
+        textX = isP ? w/2 : w * 0.1; textAlign = isP ? "center" : "left"; imgX = isP ? 0 : w*0.4; imgY = h*0.2;
+    } else { // 居中
+        textX = w/2; textAlign = "center"; imgX = (w-w*0.8)/2; imgY = h*0.3;
     }
 
-    // 4. 文字排版
-    ctx.fillStyle = style.text;
-    ctx.textAlign = isPortrait ? "center" : "left";
-    const xPos = isPortrait ? w / 2 : 80;
+    // 4. 繪製照片
+    if (userImg) {
+        const ratio = isP ? (w * 0.8) / userImg.width : (h * 0.8) / userImg.height;
+        ctx.drawImage(userImg, isP ? (w - userImg.width*ratio)/2 : w*0.5, h - userImg.height*ratio, userImg.width*ratio, userImg.height*ratio);
+    }
 
-    // 活動標題
-    ctx.font = `900 ${w * 0.08}px "Noto Sans TC"`;
-    ctx.fillText(title, xPos, h * 0.16);
+    // 5. 繪製文字 (AI 配色與文案)
+    ctx.fillStyle = design.textColor;
+    ctx.textAlign = textAlign;
 
-    // AI 標語
-    ctx.fillStyle = style.accent;
+    // 標題 (使用大標排版)
+    ctx.font = `900 ${w * 0.09}px "Noto Sans TC"`;
+    ctx.fillText(title, textX, h * 0.15);
+
+    // 標語 (AI 創意思維)
+    ctx.fillStyle = design.accentColor;
     ctx.font = `700 ${w * 0.045}px "Noto Sans TC"`;
-    ctx.fillText(slogan, xPos, h * 0.23);
+    ctx.fillText(design.slogan, textX, h * 0.22);
 
-    // 主講人
-    ctx.fillStyle = style.text;
-    ctx.font = `900 ${w * 0.06}px "Noto Sans TC"`;
-    ctx.fillText(`講者｜${name}`, xPos, h * 0.33);
+    // 姓名
+    ctx.fillStyle = design.textColor;
+    ctx.font = `900 ${w * 0.065}px "Noto Sans TC"`;
+    ctx.fillText(name, textX, h * 0.32);
 
-    // 時間日期
-    const date = document.getElementById('date').value.replace(/-/g, '.');
-    const time = document.getElementById('time').value;
-    ctx.font = `bold ${w * 0.035}px "Noto Sans TC"`;
-    ctx.fillText(`${date} AT ${time}`, xPos, h * 0.40);
+    // 日期時間
+    const d = document.getElementById('date').value;
+    const t = document.getElementById('time').value;
+    ctx.font = `400 ${w * 0.035}px "Noto Sans TC"`;
+    ctx.fillText(`${d} | ${t}`, textX, h * 0.4);
 
-    // 外框線
-    ctx.strokeStyle = style.accent;
-    ctx.lineWidth = 15;
-    ctx.strokeRect(40, 40, w - 80, h - 80);
+    // AI 裝飾邊框
+    ctx.strokeStyle = design.accentColor;
+    ctx.lineWidth = 10;
+    ctx.strokeRect(30, 30, w-60, h-60);
 }
 
 function download(id) {
     const link = document.createElement('a');
-    link.download = `AI-Poster-${id}.png`;
-    link.href = document.getElementById(id).toDataURL('image/png');
+    link.download = `AI_Poster_${id}.png`;
+    link.href = document.getElementById(id).toDataURL();
     link.click();
 }
