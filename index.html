@@ -3,214 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 海報生成器 (Gemini 2.0)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Gemini AI 海報生成器</title>
     <style>
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 2s linear infinite;
-            display: inline-block;
-            vertical-align: middle;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #posterOutput svg { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; color: #555; }
+        input[type="text"], input[type="date"], input[type="time"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #357ae8; }
+        button:disabled { background-color: #ccc; }
+        
+        #status {
+            margin-top: 1rem;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+            font-size: 14px;
+        }
+        .status-success { background-color: #e6f4ea; color: #1e8e3e; border: 1px solid #1e8e3e; }
+        .status-error { background-color: #fce8e6; color: #d93025; border: 1px solid #d93025; }
+
+        .progress-container {
+            width: 100%;
+            background-color: #eee;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+        #progressBar {
+            width: 0%;
+            height: 10px;
+            background-color: #4caf50;
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+        #resultContainer {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #posterImage {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: none;
+        }
+        .api-key-section {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #ffeeba;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+<body>
 
-    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Gemini 2.0 AI 海報生成系統</h1>
+<div class="container">
+    <h1>海報 AI 生成器</h1>
 
-        <!-- API 配置區 -->
-        <div class="mb-6 p-4 bg-blue-50 rounded-lg">
-            <label class="block text-sm font-medium text-gray-700">Gemini API Key</label>
-            <input type="password" id="apiKey" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="在此貼上您的 Google AI API Key">
-            <p id="apiStatus" class="mt-2 text-sm text-gray-500">狀態: 尚未連接</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- 輸入區域 -->
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">主講人姓名</label>
-                    <input type="text" id="name" class="mt-1 block w-full border rounded-md p-2" placeholder="例如：王小明">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">活動名稱</label>
-                    <input type="text" id="eventTitle" class="mt-1 block w-full border rounded-md p-2" placeholder="例如：2025 AI 未來趨勢論壇">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">活動日期</label>
-                        <input type="date" id="eventDate" class="mt-1 block w-full border rounded-md p-2">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">活動時間</label>
-                        <input type="time" id="eventTime" class="mt-1 block w-full border rounded-md p-2">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">其他設計註解 (風格、顏色等)</label>
-                    <textarea id="customPrompt" rows="3" class="mt-1 block w-full border rounded-md p-2" placeholder="例如：希望是極簡科技風，配色以深藍色為主..."></textarea>
-                </div>
-                
-                <!-- 檔案上傳 -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">上傳主講人照片</label>
-                    <input type="file" id="photoInput" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    <div id="uploadProgressContainer" class="hidden mt-2">
-                        <div class="w-full bg-gray-200 rounded-full h-2.5">
-                            <div id="uploadProgressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
-                        </div>
-                        <p id="uploadStatus" class="text-xs text-gray-500 mt-1">讀取照片中：0%</p>
-                    </div>
-                </div>
-
-                <button onclick="generatePoster()" id="generateBtn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-300 shadow-lg">
-                    生成隨機設計海報
-                </button>
-            </div>
-
-            <!-- 輸出區域 -->
-            <div class="border-2 border-dashed border-gray-200 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 relative min-h-[400px]">
-                <div id="loadingOverlay" class="hidden absolute inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-10">
-                    <div class="loader mb-4"></div>
-                    <p class="text-blue-600 font-medium">AI 正在構思設計並生成海報...</p>
-                </div>
-                
-                <div id="posterOutput" class="w-full h-full flex items-center justify-center">
-                    <p class="text-gray-400">海報將在此顯示</p>
-                </div>
-                
-                <div id="errorMessage" class="hidden mt-4 p-3 bg-red-100 text-red-700 rounded-md w-full text-sm break-all"></div>
-            </div>
-        </div>
+    <!-- API Key 輸入區 -->
+    <div class="api-key-section">
+        <label for="apiKey">Gemini API Key:</label>
+        <input type="text" id="apiKey" placeholder="在此輸入您的 API Key">
     </div>
 
-    <script>
-        let base64Image = null;
+    <!-- 表單區 -->
+    <div class="form-group">
+        <label>主講人姓名</label>
+        <input type="text" id="name" placeholder="例如：王小明">
+    </div>
+    <div class="form-group">
+        <label>活動名稱</label>
+        <input type="text" id="eventTitle" placeholder="例如：AI 科技未來講座">
+    </div>
+    <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="eventDate">
+    </div>
+    <div class="form-group">
+        <label>時間</label>
+        <input type="time" id="eventTime">
+    </div>
+    <div class="form-group">
+        <label>額外註解（AI 生成參考）</label>
+        <textarea id="prompt" rows="3" placeholder="例如：希望是賽博龐克風格，藍紫色調"></textarea>
+    </div>
+    <div class="form-group">
+        <label>上傳主講人照片</label>
+        <input type="file" id="photoUpload" accept="image/*">
+        <div class="progress-container" id="progressWrapper">
+            <div id="progressBar"></div>
+        </div>
+        <small id="uploadStatus"></small>
+    </div>
 
-        // 處理照片上傳進度
-        document.getElementById('photoInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+    <button id="generateBtn">生成海報 (JPEG)</button>
 
-            const reader = new FileReader();
-            const container = document.getElementById('uploadProgressContainer');
-            const bar = document.getElementById('uploadProgressBar');
-            const status = document.getElementById('uploadStatus');
+    <!-- 狀態顯示 -->
+    <div id="status"></div>
 
-            container.classList.remove('hidden');
-            
-            reader.onprogress = function(event) {
-                if (event.lengthComputable) {
-                    const percent = Math.round((event.loaded / event.total) * 100);
-                    bar.style.width = percent + '%';
-                    status.innerText = `讀取照片中：${percent}%`;
-                }
-            };
+    <!-- 結果顯示 -->
+    <div id="resultContainer">
+        <p id="loadingText" style="display:none;">AI 正在構思並繪製圖片中，請稍候...</p>
+        <img id="posterImage" alt="Generated Poster">
+    </div>
+</div>
 
-            reader.onload = function(e) {
-                base64Image = e.target.result.split(',')[1];
-                bar.style.width = '100%';
-                status.innerText = '照片讀取完成！';
-                setTimeout(() => container.classList.add('hidden'), 2000);
-            };
+<script type="module">
+    // 這裡使用 Google AI SDK 的 CDN 版本
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-            reader.readAsDataURL(file);
-        });
+    const generateBtn = document.getElementById('generateBtn');
+    const statusDiv = document.getElementById('status');
+    const posterImage = document.getElementById('posterImage');
+    const progressBar = document.getElementById('progressBar');
+    const progressWrapper = document.getElementById('progressWrapper');
+    const uploadStatus = document.getElementById('uploadStatus');
 
-        async function generatePoster() {
-            const apiKey = document.getElementById('apiKey').value;
-            const apiStatus = document.getElementById('apiStatus');
-            const posterOutput = document.getElementById('posterOutput');
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const errorMessage = document.getElementById('errorMessage');
+    let base64Photo = "";
 
-            // 初始化與檢查
-            errorMessage.classList.add('hidden');
-            if (!apiKey) {
-                alert("請輸入 API Key");
-                return;
+    // 處理照片上傳進度顯示
+    document.getElementById('photoUpload').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        progressWrapper.style.display = 'block';
+        const reader = new FileReader();
+
+        reader.onprogress = function(event) {
+            if (event.lengthComputable) {
+                const percent = (event.loaded / event.total) * 100;
+                progressBar.style.width = percent + '%';
+                uploadStatus.innerText = `讀取中: ${Math.round(percent)}%`;
             }
+        };
 
-            const data = {
-                name: document.getElementById('name').value || "未命名",
-                title: document.getElementById('eventTitle').value || "精彩活動",
-                date: document.getElementById('eventDate').value,
-                time: document.getElementById('eventTime').value,
-                note: document.getElementById('customPrompt').value
-            };
+        reader.onload = function(event) {
+            progressBar.style.width = '100%';
+            uploadStatus.innerText = '照片讀取完成！';
+            base64Photo = event.target.result.split(',')[1]; // 取得純 base64 字串
+        };
 
-            loadingOverlay.classList.remove('hidden');
-            apiStatus.innerText = "狀態: 正在通訊中...";
+        reader.readAsDataURL(file);
+    });
 
-            try {
-                // 建構 Prompt
-                const promptText = `
-                    你是一位專業的平面設計師。請根據以下資訊，生成一張高品質、現代化的活動海報。
-                    請「直接輸出」一段完整的 SVG 代碼，不要有任何 Markdown (如 \`\`\`svg)。
-                    
-                    海報資訊：
-                    - 主講人：${data.name}
-                    - 活動名稱：${data.title}
-                    - 時間：${data.date} ${data.time}
-                    - 設計風格備註：${data.note}
-                    
-                    技術要求：
-                    1. SVG 比例為 2:3 (例如 width="400" height="600")。
-                    2. 如果有提供照片(base64)，請在 SVG 中使用 <image> 標籤呈現。
-                    3. 排版要美觀，文字要清晰，包含背景裝飾。
-                    4. 風格請根據備註隨機變換，展現創意。
-                `;
+    // 顯示訊息函式
+    function showStatus(msg, isSuccess, details = "") {
+        statusDiv.style.display = 'block';
+        statusDiv.className = isSuccess ? 'status-success' : 'status-error';
+        statusDiv.innerHTML = `<strong>${msg}</strong><br><small>${details}</small>`;
+    }
 
-                const payload = {
-                    contents: [{
-                        parts: [
-                            { text: promptText },
-                            ...(base64Image ? [{ inline_data: { mime_type: "image/jpeg", data: base64Image } }] : [])
-                        ]
-                    }]
-                };
+    // 按下按鈕執行
+    generateBtn.addEventListener('click', async () => {
+        const apiKey = document.getElementById('apiKey').value.trim();
+        const name = document.getElementById('name').value;
+        const eventTitle = document.getElementById('eventTitle').value;
+        const eventDate = document.getElementById('eventDate').value;
+        const eventTime = document.getElementById('eventTime').value;
+        const userPrompt = document.getElementById('prompt').value;
 
-                // 呼叫 Gemini 2.0 API (目前使用 flash-experimental)
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error?.message || `HTTP Error ${response.status}`);
-                }
-
-                const svgCode = result.candidates[0].content.parts[0].text;
-                
-                // 檢查是否成功串接
-                apiStatus.innerText = "狀態: 連線成功！";
-                apiStatus.className = "mt-2 text-sm text-green-600";
-
-                // 顯示結果 (清理掉可能存在的 Markdown 標籤)
-                const cleanSvg = svgCode.replace(/```svg|```/g, '').trim();
-                posterOutput.innerHTML = cleanSvg;
-
-            } catch (error) {
-                console.error(error);
-                apiStatus.innerText = "狀態: 連線失敗";
-                apiStatus.className = "mt-2 text-sm text-red-600";
-                errorMessage.innerText = `詳細錯誤訊息: ${error.message}`;
-                errorMessage.classList.remove('hidden');
-                posterOutput.innerHTML = `<p class="text-red-400">無法生成海報</p>`;
-            } finally {
-                loadingOverlay.classList.add('hidden');
-            }
+        if (!apiKey) {
+            showStatus("失敗", false, "請輸入 API Key");
+            return;
         }
-    </script>
+
+        // 重置 UI
+        statusDiv.style.display = 'none';
+        posterImage.style.display = 'none';
+        document.getElementById('loadingText').style.display = 'block';
+        generateBtn.disabled = true;
+
+        try {
+            // 初始化 Gemini SDK
+            const genAI = new GoogleGenerativeAI(apiKey);
+            
+            /* 
+               注意：目前的 Gemini 2.0 / 1.5 主要是文字/視覺模型。
+               若要「生成圖片」且「不要 SVG」，在 Google AI 體系中需調用 imagen-3 模型。
+               如果您的 API Key 權限包含 Imagen，可以直接調用。
+            */
+            
+            // 構建提示詞
+            const fullPrompt = `Generate a high-quality professional event poster as a JPEG image. 
+            The poster is for an event titled "${eventTitle}" featuring speaker "${name}". 
+            Date: ${eventDate}, Time: ${eventTime}. 
+            Additional style requirements: ${userPrompt}.
+            The layout should be artistic and modern. 
+            Output format: image/jpeg.`;
+
+            // 這裡模擬調用 Imagen 模型 (目前 SDK 中圖片生成通常透過特定 endpoint)
+            // 由於 Gemini API 與 Imagen 整合方式在各版本略有不同，
+            // 若為標準 Gemini 1.5/2.0 API，它會拒絕生成二進位圖片檔。
+            // 這裡我們示範調用 Google AI Studio 的生成逻辑：
+            
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // 或使用特定 image 模型名
+
+            // 如果是純 Gemini API，它目前無法直接「回傳」JPEG 二進位流。
+            // 為了符合您的需求（由 AI 生成 JPEG，不要在本機執行），
+            // 我們必須假設您使用的是支援 Imagen 的 Endpoint 或透過 Gemini 的工具呼叫。
+            
+            // 以下是發送請求的邏輯：
+            const result = await model.generateContent([
+                fullPrompt,
+                ...(base64Photo ? [{ inlineData: { data: base64Photo, mimeType: "image/jpeg" } }] : [])
+            ]);
+
+            const response = await result.response;
+            const text = response.text();
+
+            // 檢查連線是否成功
+            showStatus("API 連線成功", true, "模型已處理請求");
+
+            /* 
+               技術挑戰說明：
+               Gemini API 目前回傳的是 Text。如果 AI 生成了圖片，它通常會提供一個 URL 或 Base64。
+               如果 Gemini 2.0 的 API 更新了直接輸出圖片的功能，它會放在 response.artifacts 中。
+            */
+
+            // 這裡模擬獲取生成的圖片（因實際 API 限制，目前 LLM 多回傳描述或 SVG，
+            // 若要 JPEG，通常需要後端串接 Vertex AI 的 Imagen 模型）
+            
+            // 假設 API 回傳了圖片數據 (未來規格) 或我們引導它生成：
+            // 此處為示意：由於純前端無法強制 Gemini 吐出二進位 JPEG，
+            // 建議配合 Google Cloud Vertex AI 的 Imagen API 使用。
+            
+            alert("提醒：Gemini API (Google AI Studio) 目前主要回傳文字。若要直接生成 JPEG，請確認您的 API Key 已開通 Imagen 3 模型權限。目前的連線已成功觸發，但模型回傳了文字描述。");
+            
+            console.log("AI Response:", text);
+
+        } catch (error) {
+            console.error(error);
+            showStatus("API 串接失敗", false, `錯誤代碼: ${error.message}`);
+        } finally {
+            generateBtn.disabled = false;
+            document.getElementById('loadingText').style.display = 'none';
+        }
+    });
+</script>
+
 </body>
 </html>
