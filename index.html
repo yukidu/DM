@@ -3,62 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 視覺設計師</title>
+    <title>AI 視覺海報設計師</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background: #f0f2f5; }
-        canvas { max-width: 100%; height: auto; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-        .design-card { background: white; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@900&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background: #f8fafc; }
+        canvas { max-width: 100%; height: auto; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.2); }
+        .input-card { background: white; border-radius: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.04); }
     </style>
 </head>
 <body class="py-10 px-4">
-    <div class="max-w-xl mx-auto design-card p-8">
-        <h1 class="text-3xl font-black text-center mb-2 tracking-tighter">AI 視覺設計師</h1>
-        <p class="text-center text-gray-400 text-sm mb-8">Gemini 1.5 將接管色彩與排版設計</p>
+    <div class="max-w-xl mx-auto input-card p-8 border border-gray-100">
+        <h1 class="text-3xl font-black text-center mb-1 tracking-tighter text-gray-800">AI 視覺設計師</h1>
+        <p class="text-center text-gray-400 text-sm mb-8 font-medium">由 Gemini 1.5 全權負責美感與構圖</p>
         
         <div class="space-y-4">
-            <input type="password" id="apiKey" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="貼上您的 Gemini API 金鑰">
-            <input type="text" id="eventTitle" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="活動主題">
-            <input type="text" id="name" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="講者姓名">
-            
-            <div class="grid grid-cols-2 gap-4">
-                <input type="date" id="date" class="p-4 bg-gray-50 rounded-2xl text-sm border-none">
-                <input type="time" id="time" class="p-4 bg-gray-50 rounded-2xl text-sm border-none">
-            </div>
-
-            <div class="relative border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:bg-gray-50 transition">
-                <input type="file" id="photoUpload" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
-                <p id="uploadText" class="text-blue-600 font-bold">點擊上傳主講人照片</p>
-                <div id="progressContainer" class="hidden mt-2 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
-                    <div id="progressBar" class="bg-blue-600 h-full w-0 transition-all"></div>
-                </div>
-            </div>
-
-            <button id="generateBtn" class="w-full py-5 bg-black text-white rounded-2xl font-black text-xl hover:scale-[1.02] transition shadow-xl flex justify-center items-center">
-                <span id="btnText">讓 AI 開始設計</span>
-                <div id="loader" class="hidden ml-3 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            </button>
-            <p id="aiStatus" class="text-center text-xs text-blue-500 font-bold mt-2"></p>
-        </div>
-    </div>
-
-    <!-- 結果 -->
-    <div id="resultArea" class="hidden max-w-6xl mx-auto mt-16 space-y-12">
-        <div class="grid md:grid-cols-2 gap-10">
-            <div class="flex flex-col items-center">
-                <p class="mb-4 text-xs font-bold text-gray-400">AI 直式構圖</p>
-                <canvas id="pCanvas" width="1080" height="1920" class="w-72"></canvas>
-                <button onclick="download('pCanvas')" class="mt-4 text-sm font-bold underline">下載</button>
-            </div>
-            <div class="flex flex-col items-center">
-                <p class="mb-4 text-xs font-bold text-gray-400">AI 橫式構圖</p>
-                <canvas id="lCanvas" width="1920" height="1080" class="w-full max-w-lg"></canvas>
-                <button onclick="download('lCanvas')" class="mt-4 text-sm font-bold underline">下載</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
-</body>
-</html>
+            <!-- API 金鑰 -->
+            <div>
+                <label class="text-[10px] font-black text-gray-400
