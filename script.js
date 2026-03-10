@@ -1,32 +1,37 @@
-// 初始化時間
+// 1. 初始化時間
 const now = new Date();
 document.getElementById('date').value = now.toISOString().split('T')[0];
 document.getElementById('time').value = now.toTimeString().slice(0, 5);
 
 let globalImg = null;
 
-// 1. 照片載入 (修正版：一選取就生效)
+// 保底設計方案 (當 API 失敗時使用)
+const FALLBACK_DESIGNS = [
+    { bgColor: "#1A1A1A", textColor: "#FFFFFF", accentColor: "#D4AF37", slogan: "尊榮體驗，啟發未來", fontStyle: "serif", layoutType: "center" },
+    { bgColor: "#F8F1E7", textColor: "#433D3C", accentColor: "#BC6C25", slogan: "自然純粹，和諧共生", fontStyle: "serif", layoutType: "split" },
+    { bgColor: "#FFFFFF", textColor: "#000000", accentColor: "#2563EB", slogan: "極致簡約，專注細節", fontStyle: "sans-serif", layoutType: "corner" }
+];
+
+// 2. 照片載入邏輯
 document.getElementById('photoUpload').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const uploadText = document.getElementById('uploadText');
     const dropZone = document.getElementById('dropZone');
-    
     uploadText.innerText = "⏳ 照片載入中...";
     
     const img = new Image();
     img.onload = function() {
         globalImg = img;
         uploadText.innerText = "✅ 照片已就緒";
-        dropZone.classList.add('bg-blue-50', 'border-blue-300');
-        console.log("圖片載入成功");
+        dropZone.style.borderColor = "#3B82F6";
+        dropZone.style.backgroundColor = "#EFF6FF";
     };
-    img.onerror = () => alert("圖片格式不支援，請更換一張。");
     img.src = URL.createObjectURL(file);
 });
 
-// 2. 隨機風格與生成按鈕 (共用邏輯)
+// 3. 生成按鈕邏輯
 document.getElementById('generateBtn').addEventListener('click', () => callGeminiDesigner(false));
 document.getElementById('randomStyleBtn').addEventListener('click', () => callGeminiDesigner(true));
 
@@ -35,136 +40,27 @@ async function callGeminiDesigner(isRandom) {
     const title = document.getElementById('eventTitle').value.trim();
     const name = document.getElementById('name').value.trim();
 
-    if (!key) return alert("請輸入 Gemini API 金鑰");
-    if (!title || !name) return alert("請完整填寫活動名稱與姓名");
+    if (!title || !name) return alert("請輸入活動名稱與姓名");
     if (!globalImg) return alert("請先上傳主講人照片！");
 
     const btnText = document.getElementById('btnText');
     const loader = document.getElementById('loader');
     const aiStatus = document.getElementById('aiStatus');
 
-    btnText.innerText = isRandom ? "隨機設計中..." : "AI 設計中...";
+    btnText.innerText = "AI 正在構思設計...";
     loader.classList.remove('hidden');
-    aiStatus.innerText = "🤖 AI 正根據活動主題思考配色方案...";
 
-    // 風格候選庫
-    const artVibes = ["梵谷星空", "包浩斯簡約", "莫蘭迪高級灰", "賽博龐克霓虹", "瑞士國際主義", "日系禪意", "現代幾何"];
-    const chosenVibe = artVibes[Math.floor(Math.random() * artVibes.length)];
+    // 隨機選一個風格作為 AI 的參考
+    const vibes = ["梵谷", "包浩斯", "莫蘭迪", "賽博龐克", "瑞士極簡", "和風"];
+    const chosenVibe = vibes[Math.floor(Math.random() * vibes.length)];
 
-    const prompt = `你是一位世界級平面設計師。現在要為活動「${title}」設計海報。
-    ${isRandom ? `這次請指定使用「${chosenVibe}」的風格美學。` : `請根據活動內容自動決定風格。`}
-    請幫我決定設計基因，並嚴格只回傳以下 JSON 格式：
-    {
-      "bgColor": "背景色16進位",
-      "textColor": "文字主色16進位",
-      "accentColor": "裝飾色16進位",
-      "slogan": "一句8字內繁體中文標語",
-      "fontStyle": "sans-serif 或 serif",
-      "layoutType": "split(左右), center(置中), corner(靠角)"
-    }`;
+    let designResult = FALLBACK_DESIGNS[Math.floor(Math.random() * FALLBACK_DESIGNS.length)];
 
-    try {
-        const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-
-        const data = await resp.json();
-        const rawJson = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-        const design = JSON.parse(rawJson);
-
-        aiStatus.innerText = `✨ 已採用 AI 設計方案：「${design.slogan}」`;
-        
-        // 執行繪製
-        renderPoster('pCanvas', title, name, design);
-        renderPoster('lCanvas', title, name, design);
-
-        document.getElementById('resultArea').classList.remove('hidden');
-        window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 50, behavior: 'smooth' });
-
-    } catch (err) {
-        console.error(err);
-        alert("AI 設計過程發生問題，可能是金鑰無效或 API 格式變動。");
-    } finally {
-        btnText.innerText = "啟動 AI 智能設計";
-        loader.classList.add('hidden');
-    }
-}
-
-function renderPoster(id, title, name, design) {
-    const cvs = document.getElementById(id);
-    const ctx = cvs.getContext('2d');
-    const w = cvs.width;
-    const h = cvs.height;
-    const isP = h > w;
-
-    // A. 背景
-    ctx.fillStyle = design.bgColor;
-    ctx.fillRect(0, 0, w, h);
-
-    // B. AI 裝飾
-    ctx.globalAlpha = 0.2;
-    ctx.fillStyle = design.accentColor;
-    ctx.beginPath();
-    ctx.arc(w * Math.random(), h * 0.2, w * 0.6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1.0;
-
-    // C. 構圖邏輯
-    let textX, textAlign, imgRatio;
-    if (design.layoutType === "split" && !isP) { // 橫式分割
-        textX = w * 0.1; textAlign = "left"; 
-    } else if (design.layoutType === "corner") { // 靠角
-        textX = isP ? w * 0.1 : w * 0.05; textAlign = "left";
-    } else { // 置中
-        textX = w / 2; textAlign = "center";
-    }
-
-    // D. 畫人
-    if (globalImg) {
-        const ratio = isP ? (w * 0.9) / globalImg.width : (h * 0.9) / globalImg.height;
-        const dw = globalImg.width * ratio;
-        const dh = globalImg.height * ratio;
-        const dx = isP ? (w - dw) / 2 : w - dw;
-        const dy = h - dh;
-        ctx.drawImage(globalImg, dx, dy, dw, dh);
-    }
-
-    // E. 畫文字
-    ctx.fillStyle = design.textColor;
-    ctx.textAlign = textAlign;
-    const fontName = design.fontStyle === "serif" ? "Noto Serif TC" : "Noto Sans TC";
-
-    // 標題
-    ctx.font = `900 ${w * 0.09}px "${fontName}"`;
-    ctx.fillText(title, textX, h * 0.18);
-
-    // 標語
-    ctx.fillStyle = design.accentColor;
-    ctx.font = `700 ${w * 0.045}px "Noto Sans TC"`;
-    ctx.fillText(design.slogan, textX, h * 0.26);
-
-    // 姓名
-    ctx.fillStyle = design.textColor;
-    ctx.font = `900 ${w * 0.065}px "${fontName}"`;
-    ctx.fillText(name, textX, h * 0.36);
-
-    // 時段
-    const date = document.getElementById('date').value.replace(/-/g, '/');
-    const time = document.getElementById('time').value;
-    ctx.font = `bold ${w * 0.035}px "Noto Sans TC"`;
-    ctx.fillText(`${date} ｜ ${time}`, textX, h * 0.44);
-
-    // AI 設計邊框
-    ctx.strokeStyle = design.accentColor;
-    ctx.lineWidth = 15;
-    ctx.strokeRect(40, 40, w - 80, h - 80);
-}
-
-function download(id) {
-    const link = document.createElement('a');
-    link.download = `AI海報-${Date.now()}.png`;
-    link.href = document.getElementById(id).toDataURL();
-    link.click();
-}
+    // 如果有填 Key，才跑 AI 邏輯
+    if (key) {
+        try {
+            const prompt = `你是一位資深平面設計師。活動「${title}」，講者「${name}」。
+            風格目標：${isRandom ? chosenVibe : '自動決定'}。
+            請決定設計基因，僅回傳 JSON 格式，不准有其他文字：
+            {
+              "bgColor": "背景色16進
