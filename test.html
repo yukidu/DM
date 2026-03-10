@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Gemini API 最簡測試工具</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; line-height: 1.6; }
+        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; cursor: pointer; background: #4285f4; color: white; border: none; border-radius: 4px; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+        .success { background: #e6ffed; border: 1px solid #b7eb8f; color: #237804; }
+        .error { background: #fff1f0; border: 1px solid #ffa39e; color: #cf1322; }
+    </style>
+</head>
+<body>
+    <h2>Gemini API 測試工具</h2>
+    <p>請輸入你的 API 金鑰並點擊測試：</p>
+    <input type="text" id="apiKey" placeholder="在此輸入 AIzaSy... 開頭的金鑰">
+    <button onclick="testGemini()">立即發送測試請求</button>
+
+    <div id="result" style="display:none;"></div>
+
+    <script>
+        async function testGemini() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!apiKey) {
+                alert("請先輸入金鑰！");
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = '';
+            resultDiv.innerText = "連線中，請稍候...";
+
+            // 使用目前最穩定的 gemini-1.5-flash 模型
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: "你好，這是一次連線測試。" }] }]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'success';
+                    resultDiv.innerText = "✅ 串接成功！\n\nAI 回應：\n" + data.candidates[0].content.parts[0].text;
+                } else {
+                    resultDiv.className = 'error';
+                    // 顯示詳細的錯誤訊息
+                    resultDiv.innerText = `❌ 串接失敗 (錯誤代碼: ${response.status})\n\n詳細原因：\n${JSON.stringify(data.error, null, 2)}`;
+                }
+            } catch (err) {
+                resultDiv.className = 'error';
+                resultDiv.innerText = `❌ 網路連線錯誤 (CORS 或 無法連線)\n\n原因：${err.message}\n(如果你在中國/香港，請確認網路環境能否存取 Google 服務)`;
+            }
+        }
+    </script>
+</body>
+</html>
