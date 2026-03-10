@@ -3,190 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 視覺海報設計師</title>
+    <title>AI 海報生成器 (Gemini 2.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
-        .poster-view svg { width: 100%; height: auto; border-radius: 1.5rem; filter: drop-shadow(0 20px 25px rgba(0,0,0,0.1)); }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #posterOutput svg { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
     </style>
 </head>
-<body class="py-10 px-4">
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
 
-    <div class="max-w-xl mx-auto bg-white p-8 rounded-[2.5rem] shadow-2xl border border-gray-100">
-        <h1 class="text-3xl font-black text-center mb-2 tracking-tighter text-slate-800">AI 視覺設計師</h1>
-        <p class="text-center text-slate-400 text-sm mb-8">所有設計邏輯由 Gemini 2.5 API 運算生成</p>
-        
-        <div class="space-y-4">
-            <!-- API 設定 -->
-            <input type="password" id="apiKey" class="w-full p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="貼上您的 Gemini API 金鑰">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Gemini 2.0 AI 海報生成系統</h1>
 
-            <!-- 資料輸入 -->
-            <input type="text" id="eventTitle" class="w-full p-4 bg-slate-50 rounded-2xl border-none" placeholder="活動名稱">
-            <input type="text" id="speakerName" class="w-full p-4 bg-slate-50 rounded-2xl border-none" placeholder="主講人姓名">
-            
-            <div class="grid grid-cols-2 gap-4">
-                <input type="date" id="eventDate" class="p-4 bg-slate-50 rounded-2xl border-none text-sm">
-                <input type="time" id="eventTime" class="p-4 bg-slate-50 rounded-2xl border-none text-sm">
-            </div>
-
-            <!-- 照片上傳與進度顯示 -->
-            <label for="photoUpload" class="relative block border-2 border-dashed border-slate-200 rounded-3xl p-6 text-center hover:bg-slate-50 transition cursor-pointer">
-                <input type="file" id="photoUpload" accept="image/*" class="hidden">
-                <div id="uploadStatus" class="text-blue-600 font-bold">📷 點擊上傳主講人照片</div>
-                <div class="w-full bg-slate-100 rounded-full h-1.5 mt-4 hidden" id="progressParent">
-                    <div id="progressBar" class="bg-blue-600 h-1.5 rounded-full w-0 transition-all duration-300"></div>
-                </div>
-            </label>
-
-            <!-- API 狀態診斷 -->
-            <div id="apiStatus" class="hidden p-4 rounded-2xl text-xs font-mono border-l-4"></div>
-
-            <!-- 唯一按鈕：生成 -->
-            <button id="generateBtn" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-xl hover:bg-black active:scale-95 transition-all shadow-xl flex justify-center items-center">
-                <span id="btnText">啟動 AI 智能設計</span>
-                <div id="loader" class="hidden ml-3 w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            </button>
+        <!-- API 配置區 -->
+        <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+            <label class="block text-sm font-medium text-gray-700">Gemini API Key</label>
+            <input type="password" id="apiKey" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="在此貼上您的 Google AI API Key">
+            <p id="apiStatus" class="mt-2 text-sm text-gray-500">狀態: 尚未連接</p>
         </div>
-    </div>
 
-    <!-- 結果區 -->
-    <div id="resultArea" class="hidden max-w-6xl mx-auto mt-20 space-y-16 pb-20">
-        <div class="grid md:grid-cols-2 gap-12">
-            <div class="flex flex-col items-center">
-                <span class="mb-4 text-xs font-black text-slate-300 uppercase tracking-widest">直式海報 (9:16)</span>
-                <div id="portraitOutput" class="poster-view w-full max-w-[400px]"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 輸入區域 -->
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">主講人姓名</label>
+                    <input type="text" id="name" class="mt-1 block w-full border rounded-md p-2" placeholder="例如：王小明">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">活動名稱</label>
+                    <input type="text" id="eventTitle" class="mt-1 block w-full border rounded-md p-2" placeholder="例如：2025 AI 未來趨勢論壇">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">活動日期</label>
+                        <input type="date" id="eventDate" class="mt-1 block w-full border rounded-md p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">活動時間</label>
+                        <input type="time" id="eventTime" class="mt-1 block w-full border rounded-md p-2">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">其他設計註解 (風格、顏色等)</label>
+                    <textarea id="customPrompt" rows="3" class="mt-1 block w-full border rounded-md p-2" placeholder="例如：希望是極簡科技風，配色以深藍色為主..."></textarea>
+                </div>
+                
+                <!-- 檔案上傳 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">上傳主講人照片</label>
+                    <input type="file" id="photoInput" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <div id="uploadProgressContainer" class="hidden mt-2">
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="uploadProgressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p id="uploadStatus" class="text-xs text-gray-500 mt-1">讀取照片中：0%</p>
+                    </div>
+                </div>
+
+                <button onclick="generatePoster()" id="generateBtn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-300 shadow-lg">
+                    生成隨機設計海報
+                </button>
             </div>
-            <div class="flex flex-col items-center">
-                <span class="mb-4 text-xs font-black text-slate-300 uppercase tracking-widest">橫式海報 (16:9)</span>
-                <div id="landscapeOutput" class="poster-view w-full"></div>
+
+            <!-- 輸出區域 -->
+            <div class="border-2 border-dashed border-gray-200 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 relative min-h-[400px]">
+                <div id="loadingOverlay" class="hidden absolute inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-10">
+                    <div class="loader mb-4"></div>
+                    <p class="text-blue-600 font-medium">AI 正在構思設計並生成海報...</p>
+                </div>
+                
+                <div id="posterOutput" class="w-full h-full flex items-center justify-center">
+                    <p class="text-gray-400">海報將在此顯示</p>
+                </div>
+                
+                <div id="errorMessage" class="hidden mt-4 p-3 bg-red-100 text-red-700 rounded-md w-full text-sm break-all"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // 初始化日期
-        document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
-        document.getElementById('eventTime').value = "14:00";
+        let base64Image = null;
 
-        let base64Photo = "";
-
-        // 處理照片與進度
-        document.getElementById('photoUpload').addEventListener('change', function(e) {
+        // 處理照片上傳進度
+        document.getElementById('photoInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            const progressParent = document.getElementById('progressParent');
-            const progressBar = document.getElementById('progressBar');
-            const uploadStatus = document.getElementById('uploadStatus');
-
-            progressParent.classList.remove('hidden');
-            uploadStatus.innerText = "正在讀取照片...";
-
             const reader = new FileReader();
-            reader.onprogress = (ev) => {
-                if (ev.lengthComputable) {
-                    const progress = Math.round((ev.loaded / ev.total) * 100);
-                    progressBar.style.width = progress + "%";
+            const container = document.getElementById('uploadProgressContainer');
+            const bar = document.getElementById('uploadProgressBar');
+            const status = document.getElementById('uploadStatus');
+
+            container.classList.remove('hidden');
+            
+            reader.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    bar.style.width = percent + '%';
+                    status.innerText = `讀取照片中：${percent}%`;
                 }
             };
 
-            reader.onload = (ev) => {
-                base64Photo = ev.target.result;
-                uploadStatus.innerText = "✅ 照片讀取成功";
-                uploadStatus.classList.replace('text-blue-600', 'text-green-600');
+            reader.onload = function(e) {
+                base64Image = e.target.result.split(',')[1];
+                bar.style.width = '100%';
+                status.innerText = '照片讀取完成！';
+                setTimeout(() => container.classList.add('hidden'), 2000);
             };
+
             reader.readAsDataURL(file);
         });
 
-        // 串接 Gemini 2.5 API
-        document.getElementById('generateBtn').addEventListener('click', async () => {
-            const key = document.getElementById('apiKey').value.trim();
-            const title = document.getElementById('eventTitle').value.trim();
-            const name = document.getElementById('speakerName').value.trim();
-            const date = document.getElementById('eventDate').value;
-            const time = document.getElementById('eventTime').value;
+        async function generatePoster() {
+            const apiKey = document.getElementById('apiKey').value;
+            const apiStatus = document.getElementById('apiStatus');
+            const posterOutput = document.getElementById('posterOutput');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const errorMessage = document.getElementById('errorMessage');
 
-            const status = document.getElementById('apiStatus');
-            const loader = document.getElementById('loader');
-            const btnText = document.getElementById('btnText');
-
-            if (!key || !title || !name || !base64Photo) {
-                alert("請完整填寫資料並上傳照片");
+            // 初始化與檢查
+            errorMessage.classList.add('hidden');
+            if (!apiKey) {
+                alert("請輸入 API Key");
                 return;
             }
 
-            // 更新 UI 狀態
-            status.className = "p-4 rounded-2xl text-xs font-mono border-l-4 bg-blue-50 border-blue-500 text-blue-700 block";
-            status.innerText = "⏳ 正在請求 Gemini 2.5 設計視覺中...";
-            loader.classList.remove('hidden');
-            btnText.innerText = "AI 運算中...";
+            const data = {
+                name: document.getElementById('name').value || "未命名",
+                title: document.getElementById('eventTitle').value || "精彩活動",
+                date: document.getElementById('eventDate').value,
+                time: document.getElementById('eventTime').value,
+                note: document.getElementById('customPrompt').value
+            };
 
-            // Prompt 設計：要求 AI 產生兩組 SVG
-            const prompt = `你是一位世界級平面設計大師。請為活動「${title}」設計兩款宣傳海報。
-            主講人：${name}
-            日期時間：${date} ${time}
-
-            任務要求：
-            1. 隨機參考一種知名的世界藝術風格（如：梵谷、包浩斯幾何、莫蘭迪色系、賽博龐克等），風格要明顯且具藝術感。
-            2. 海報內容必須為「繁體中文」。
-            3. 產生兩組 SVG 程式碼：
-               - 一組直式 (比例 9:16，寬1080高1920)。
-               - 一組橫式 (比例 16:9，寬1920高1080)。
-            4. 在 SVG 中，照片請使用 <image x="..." y="..." width="..." height="..." href="SPEAKER_PHOTO" /> 標籤。請根據風格決定照片的擺放位置與大小。
-            5. 海報背景要與照片色調和藝術風格協調。
-            6. 僅回傳 JSON 格式，結構如下：
-               {"portrait_svg": "...", "landscape_svg": "..."}
-            7. 不要回傳任何 markdown 或解釋，只要 JSON。`;
+            loadingOverlay.classList.remove('hidden');
+            apiStatus.innerText = "狀態: 正在通訊中...";
 
             try {
-                // 使用最新 2.0/2.5 flash 模型串接
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                // 建構 Prompt
+                const promptText = `
+                    你是一位專業的平面設計師。請根據以下資訊，生成一張高品質、現代化的活動海報。
+                    請「直接輸出」一段完整的 SVG 代碼，不要有任何 Markdown (如 \`\`\`svg)。
+                    
+                    海報資訊：
+                    - 主講人：${data.name}
+                    - 活動名稱：${data.title}
+                    - 時間：${data.date} ${data.time}
+                    - 設計風格備註：${data.note}
+                    
+                    技術要求：
+                    1. SVG 比例為 2:3 (例如 width="400" height="600")。
+                    2. 如果有提供照片(base64)，請在 SVG 中使用 <image> 標籤呈現。
+                    3. 排版要美觀，文字要清晰，包含背景裝飾。
+                    4. 風格請根據備註隨機變換，展現創意。
+                `;
+
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { text: promptText },
+                            ...(base64Image ? [{ inline_data: { mime_type: "image/jpeg", data: base64Image } }] : [])
+                        ]
+                    }]
+                };
+
+                // 呼叫 Gemini 2.0 API (目前使用 flash-experimental)
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [
-                            {
-                                parts: [
-                                    { text: prompt },
-                                    { inline_data: { mime_type: "image/jpeg", data: base64Photo.split(',')[1] } }
-                                ]
-                            }
-                        ],
-                        generationConfig: { response_mime_type: "application/json" }
-                    })
+                    body: JSON.stringify(payload)
                 });
 
+                const result = await response.json();
+
                 if (!response.ok) {
-                    const err = await response.json();
-                    throw { code: response.status, message: err.error.message };
+                    throw new Error(result.error?.message || `HTTP Error ${response.status}`);
                 }
 
-                const data = await response.json();
-                const result = JSON.parse(data.candidates[0].content.parts[0].text);
-
-                // 將照片嵌入回 SVG
-                const pSvg = result.portrait_svg.replace(/SPEAKER_PHOTO/g, base64Photo);
-                const lSvg = result.landscape_svg.replace(/SPEAKER_PHOTO/g, base64Photo);
-
-                document.getElementById('portraitOutput').innerHTML = pSvg;
-                document.getElementById('landscapeOutput').innerHTML = lSvg;
-                document.getElementById('resultArea').classList.remove('hidden');
-
-                status.className = "p-4 rounded-2xl text-xs font-mono border-l-4 bg-green-50 border-green-500 text-green-700 block";
-                status.innerText = "✅ 連線成功：AI 設計已完成渲染。";
+                const svgCode = result.candidates[0].content.parts[0].text;
                 
-                window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 50, behavior: 'smooth' });
+                // 檢查是否成功串接
+                apiStatus.innerText = "狀態: 連線成功！";
+                apiStatus.className = "mt-2 text-sm text-green-600";
 
-            } catch (err) {
-                status.className = "p-4 rounded-2xl text-xs font-mono border-l-4 bg-red-50 border-red-500 text-red-700 block";
-                status.innerText = `❌ API 串接失敗：[代碼 ${err.code || '網路錯誤'}] ${err.message || '未知錯誤'}`;
-                console.error(err);
+                // 顯示結果 (清理掉可能存在的 Markdown 標籤)
+                const cleanSvg = svgCode.replace(/```svg|```/g, '').trim();
+                posterOutput.innerHTML = cleanSvg;
+
+            } catch (error) {
+                console.error(error);
+                apiStatus.innerText = "狀態: 連線失敗";
+                apiStatus.className = "mt-2 text-sm text-red-600";
+                errorMessage.innerText = `詳細錯誤訊息: ${error.message}`;
+                errorMessage.classList.remove('hidden');
+                posterOutput.innerHTML = `<p class="text-red-400">無法生成海報</p>`;
             } finally {
-                loader.classList.add('hidden');
-                btnText.innerText = "啟動 AI 智能設計";
+                loadingOverlay.classList.add('hidden');
             }
-        });
+        }
     </script>
 </body>
 </html>
