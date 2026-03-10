@@ -1,159 +1,170 @@
-// 預設日期
-window.onload = () => {
-    const n = new Date();
-    document.getElementById('date').value = n.toISOString().split('T')[0];
-    document.getElementById('time').value = n.toTimeString().slice(0, 5);
-};
+// 初始化時間
+const now = new Date();
+document.getElementById('date').value = now.toISOString().split('T')[0];
+document.getElementById('time').value = now.toTimeString().slice(0, 5);
 
-let userImg = null;
+let globalImg = null;
 
-// 照片處理 (包含進度顯示)
-document.getElementById('photoUpload').addEventListener('change', (e) => {
+// 1. 照片載入 (修正版：一選取就生效)
+document.getElementById('photoUpload').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
-    const bar = document.getElementById('progressBar');
-    document.getElementById('progressContainer').classList.remove('hidden');
+
+    const uploadText = document.getElementById('uploadText');
+    const dropZone = document.getElementById('dropZone');
     
-    const reader = new FileReader();
-    reader.onprogress = (ev) => {
-        if (ev.lengthComputable) bar.style.width = (ev.loaded / ev.total * 100) + '%';
+    uploadText.innerText = "⏳ 照片載入中...";
+    
+    const img = new Image();
+    img.onload = function() {
+        globalImg = img;
+        uploadText.innerText = "✅ 照片已就緒";
+        dropZone.classList.add('bg-blue-50', 'border-blue-300');
+        console.log("圖片載入成功");
     };
-    reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
-            userImg = img;
-            document.getElementById('uploadText').innerText = "✅ 照片已就緒";
-        };
-        img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+    img.onerror = () => alert("圖片格式不支援，請更換一張。");
+    img.src = URL.createObjectURL(file);
 });
 
-// 點擊生成
-document.getElementById('generateBtn').addEventListener('click', async () => {
-    const key = document.getElementById('apiKey').value;
-    const title = document.getElementById('eventTitle').value;
-    const name = document.getElementById('name').value;
+// 2. 隨機風格與生成按鈕 (共用邏輯)
+document.getElementById('generateBtn').addEventListener('click', () => callGeminiDesigner(false));
+document.getElementById('randomStyleBtn').addEventListener('click', () => callGeminiDesigner(true));
 
-    if (!key || !title || !name || !userImg) return alert("請填寫所有資料並上傳照片");
+async function callGeminiDesigner(isRandom) {
+    const key = document.getElementById('apiKey').value.trim();
+    const title = document.getElementById('eventTitle').value.trim();
+    const name = document.getElementById('name').value.trim();
 
-    const status = document.getElementById('aiStatus');
+    if (!key) return alert("請輸入 Gemini API 金鑰");
+    if (!title || !name) return alert("請完整填寫活動名稱與姓名");
+    if (!globalImg) return alert("請先上傳主講人照片！");
+
+    const btnText = document.getElementById('btnText');
     const loader = document.getElementById('loader');
-    status.innerText = "🤖 Gemini 正在設計視覺風格與配色...";
+    const aiStatus = document.getElementById('aiStatus');
+
+    btnText.innerText = isRandom ? "隨機設計中..." : "AI 設計中...";
     loader.classList.remove('hidden');
+    aiStatus.innerText = "🤖 AI 正根據活動主題思考配色方案...";
+
+    // 風格候選庫
+    const artVibes = ["梵谷星空", "包浩斯簡約", "莫蘭迪高級灰", "賽博龐克霓虹", "瑞士國際主義", "日系禪意", "現代幾何"];
+    const chosenVibe = artVibes[Math.floor(Math.random() * artVibes.length)];
+
+    const prompt = `你是一位世界級平面設計師。現在要為活動「${title}」設計海報。
+    ${isRandom ? `這次請指定使用「${chosenVibe}」的風格美學。` : `請根據活動內容自動決定風格。`}
+    請幫我決定設計基因，並嚴格只回傳以下 JSON 格式：
+    {
+      "bgColor": "背景色16進位",
+      "textColor": "文字主色16進位",
+      "accentColor": "裝飾色16進位",
+      "slogan": "一句8字內繁體中文標語",
+      "fontStyle": "sans-serif 或 serif",
+      "layoutType": "split(左右), center(置中), corner(靠角)"
+    }`;
 
     try {
-        // --- 請 AI 擔任視覺設計師 ---
-        const prompt = `你是一位資深平面設計大師。請為活動「${title}」設計海報視覺。
-        請根據活動主題，決定最適合的配色與排版邏輯。
-        請嚴格只回傳以下 JSON 格式，不要有任何解釋文字：
-        {
-          "bgColor": "背景色16進位",
-          "textColor": "標題文字色16進位",
-          "accentColor": "裝飾元素色16進位",
-          "slogan": "一句8字內繁體中文標語",
-          "decorationType": "幾何圖形類型(circle/stripe/dots)",
-          "layoutMode": "構圖模式(split/center/asymmetric)"
-        }`;
-
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
-        
-        const data = await resp.json();
-        const aiResponse = data.candidates[0].content.parts[0].text;
-        const design = JSON.parse(aiResponse.replace(/```json|```/g, ''));
 
-        status.innerText = `✨ AI 設計師已套用「${design.slogan}」風格方案`;
+        const data = await resp.json();
+        const rawJson = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+        const design = JSON.parse(rawJson);
+
+        aiStatus.innerText = `✨ 已採用 AI 設計方案：「${design.slogan}」`;
         
-        // 開始依據 AI 的指令繪製
-        render('pCanvas', title, name, design);
-        render('lCanvas', title, name, design);
+        // 執行繪製
+        renderPoster('pCanvas', title, name, design);
+        renderPoster('lCanvas', title, name, design);
 
         document.getElementById('resultArea').classList.remove('hidden');
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 50, behavior: 'smooth' });
+
     } catch (err) {
         console.error(err);
-        alert("AI 設計過程出錯，請檢查金鑰或嘗試重新生成");
+        alert("AI 設計過程發生問題，可能是金鑰無效或 API 格式變動。");
     } finally {
+        btnText.innerText = "啟動 AI 智能設計";
         loader.classList.add('hidden');
     }
-});
+}
 
-function render(id, title, name, design) {
+function renderPoster(id, title, name, design) {
     const cvs = document.getElementById(id);
     const ctx = cvs.getContext('2d');
     const w = cvs.width;
     const h = cvs.height;
     const isP = h > w;
 
-    // 1. AI 決定背景色
+    // A. 背景
     ctx.fillStyle = design.bgColor;
     ctx.fillRect(0, 0, w, h);
 
-    // 2. AI 決定裝飾元素
-    ctx.globalAlpha = 0.3;
+    // B. AI 裝飾
+    ctx.globalAlpha = 0.2;
     ctx.fillStyle = design.accentColor;
-    if (design.decorationType === "circle") {
-        ctx.beginPath(); ctx.arc(w*Math.random(), h*Math.random(), w*0.5, 0, Math.PI*2); ctx.fill();
-    } else if (design.decorationType === "stripe") {
-        for(let i=0; i<w; i+=w/10) ctx.fillRect(i, 0, 10, h);
-    } else {
-        for(let i=0; i<100; i++) ctx.fillRect(Math.random()*w, Math.random()*h, 5, 5);
-    }
+    ctx.beginPath();
+    ctx.arc(w * Math.random(), h * 0.2, w * 0.6, 0, Math.PI * 2);
+    ctx.fill();
     ctx.globalAlpha = 1.0;
 
-    // 3. AI 決定構圖模式 (Layout Logic)
-    let textX, textAlign, imgX, imgY;
-    if (design.layoutMode === "split" && !isP) { // 橫式分割
-        textX = w * 0.08; textAlign = "left"; imgX = w * 0.5; imgY = h * 0.1;
-    } else if (design.layoutMode === "asymmetric") { // 非對稱
-        textX = isP ? w/2 : w * 0.1; textAlign = isP ? "center" : "left"; imgX = isP ? 0 : w*0.4; imgY = h*0.2;
-    } else { // 居中
-        textX = w/2; textAlign = "center"; imgX = (w-w*0.8)/2; imgY = h*0.3;
+    // C. 構圖邏輯
+    let textX, textAlign, imgRatio;
+    if (design.layoutType === "split" && !isP) { // 橫式分割
+        textX = w * 0.1; textAlign = "left"; 
+    } else if (design.layoutType === "corner") { // 靠角
+        textX = isP ? w * 0.1 : w * 0.05; textAlign = "left";
+    } else { // 置中
+        textX = w / 2; textAlign = "center";
     }
 
-    // 4. 繪製照片
-    if (userImg) {
-        const ratio = isP ? (w * 0.8) / userImg.width : (h * 0.8) / userImg.height;
-        ctx.drawImage(userImg, isP ? (w - userImg.width*ratio)/2 : w*0.5, h - userImg.height*ratio, userImg.width*ratio, userImg.height*ratio);
+    // D. 畫人
+    if (globalImg) {
+        const ratio = isP ? (w * 0.9) / globalImg.width : (h * 0.9) / globalImg.height;
+        const dw = globalImg.width * ratio;
+        const dh = globalImg.height * ratio;
+        const dx = isP ? (w - dw) / 2 : w - dw;
+        const dy = h - dh;
+        ctx.drawImage(globalImg, dx, dy, dw, dh);
     }
 
-    // 5. 繪製文字 (AI 配色與文案)
+    // E. 畫文字
     ctx.fillStyle = design.textColor;
     ctx.textAlign = textAlign;
+    const fontName = design.fontStyle === "serif" ? "Noto Serif TC" : "Noto Sans TC";
 
-    // 標題 (使用大標排版)
-    ctx.font = `900 ${w * 0.09}px "Noto Sans TC"`;
-    ctx.fillText(title, textX, h * 0.15);
+    // 標題
+    ctx.font = `900 ${w * 0.09}px "${fontName}"`;
+    ctx.fillText(title, textX, h * 0.18);
 
-    // 標語 (AI 創意思維)
+    // 標語
     ctx.fillStyle = design.accentColor;
     ctx.font = `700 ${w * 0.045}px "Noto Sans TC"`;
-    ctx.fillText(design.slogan, textX, h * 0.22);
+    ctx.fillText(design.slogan, textX, h * 0.26);
 
     // 姓名
     ctx.fillStyle = design.textColor;
-    ctx.font = `900 ${w * 0.065}px "Noto Sans TC"`;
-    ctx.fillText(name, textX, h * 0.32);
+    ctx.font = `900 ${w * 0.065}px "${fontName}"`;
+    ctx.fillText(name, textX, h * 0.36);
 
-    // 日期時間
-    const d = document.getElementById('date').value;
-    const t = document.getElementById('time').value;
-    ctx.font = `400 ${w * 0.035}px "Noto Sans TC"`;
-    ctx.fillText(`${d} | ${t}`, textX, h * 0.4);
+    // 時段
+    const date = document.getElementById('date').value.replace(/-/g, '/');
+    const time = document.getElementById('time').value;
+    ctx.font = `bold ${w * 0.035}px "Noto Sans TC"`;
+    ctx.fillText(`${date} ｜ ${time}`, textX, h * 0.44);
 
-    // AI 裝飾邊框
+    // AI 設計邊框
     ctx.strokeStyle = design.accentColor;
-    ctx.lineWidth = 10;
-    ctx.strokeRect(30, 30, w-60, h-60);
+    ctx.lineWidth = 15;
+    ctx.strokeRect(40, 40, w - 80, h - 80);
 }
 
 function download(id) {
     const link = document.createElement('a');
-    link.download = `AI_Poster_${id}.png`;
+    link.download = `AI海報-${Date.now()}.png`;
     link.href = document.getElementById(id).toDataURL();
     link.click();
 }
