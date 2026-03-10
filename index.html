@@ -4,20 +4,193 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 視覺海報設計師</title>
+    <!-- 載入外部資源 -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@900&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background: #f8fafc; }
-        canvas { max-width: 100%; height: auto; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.2); }
-        .input-card { background: white; border-radius: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.04); }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .poster-canvas { max-width: 100%; height: auto; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.2); }
+        .glass-card { background: white; border-radius: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body class="py-10 px-4">
-    <div class="max-w-xl mx-auto input-card p-8 border border-gray-100">
+
+    <!-- 輸入介面 -->
+    <div class="max-w-xl mx-auto glass-card p-8 border border-gray-100">
         <h1 class="text-3xl font-black text-center mb-1 tracking-tighter text-gray-800">AI 視覺設計師</h1>
-        <p class="text-center text-gray-400 text-sm mb-8 font-medium">由 Gemini 1.5 全權負責美感與構圖</p>
+        <p class="text-center text-gray-400 text-sm mb-8">由 Gemini 1.5 全權負責美感與構圖</p>
         
         <div class="space-y-4">
-            <!-- API 金鑰 -->
             <div>
-                <label class="text-[10px] font-black text-gray-400
+                <label class="text-[10px] font-black text-gray-400 ml-2 uppercase tracking-widest">Gemini API 金鑰</label>
+                <input type="password" id="apiKey" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-blue-500" placeholder="貼上您的 API 金鑰...">
+            </div>
+
+            <input type="text" id="eventTitle" class="w-full p-4 bg-gray-50 rounded-2xl border-none" placeholder="活動名稱">
+            <input type="text" id="name" class="w-full p-4 bg-gray-50 rounded-2xl border-none" placeholder="主講人姓名">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <input type="date" id="date" class="p-4 bg-gray-50 rounded-2xl text-sm border-none">
+                <input type="time" id="time" class="p-4 bg-gray-50 rounded-2xl text-sm border-none">
+            </div>
+
+            <div id="dropZone" class="relative border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:bg-gray-50 transition cursor-pointer">
+                <input type="file" id="photoUpload" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                <p id="uploadText" class="text-blue-600 font-black text-sm">點擊上傳主講人照片</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 pt-2">
+                <button id="generateBtn" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 shadow-xl transition-all flex justify-center items-center">
+                    <span id="btnText">啟動 AI 智能設計</span>
+                    <div id="loader" class="hidden ml-3 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </button>
+                <button id="randomStyleBtn" class="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-all">
+                    🎲 隨機變換藝術風格
+                </button>
+            </div>
+            <p id="aiStatus" class="text-center text-xs font-bold text-gray-400 mt-2"></p>
+        </div>
+    </div>
+
+    <!-- 結果區 -->
+    <div id="resultArea" class="hidden max-w-6xl mx-auto mt-20 pb-20">
+        <div class="grid md:grid-cols-2 gap-16">
+            <div class="flex flex-col items-center">
+                <span class="mb-4 text-xs font-black text-gray-300 uppercase tracking-widest">直式海報 (9:16)</span>
+                <canvas id="pCanvas" width="1080" height="1920" class="poster-canvas w-72"></canvas>
+                <button onclick="download('pCanvas')" class="mt-6 text-sm font-bold text-blue-500 underline">下載直式圖</button>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="mb-4 text-xs font-black text-gray-300 uppercase tracking-widest">橫式海報 (16:9)</span>
+                <canvas id="lCanvas" width="1920" height="1080" class="poster-canvas w-full max-w-lg"></canvas>
+                <button onclick="download('lCanvas')" class="mt-6 text-sm font-bold text-blue-500 underline">下載橫式圖</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 這裡開始是原本的 JavaScript ---
+        window.onload = () => {
+            const now = new Date();
+            document.getElementById('date').value = now.toISOString().split('T')[0];
+            document.getElementById('time').value = now.toTimeString().slice(0, 5);
+        };
+
+        let globalImg = null;
+
+        document.getElementById('photoUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const uploadText = document.getElementById('uploadText');
+            uploadText.innerText = "⌛ 載入中...";
+            const img = new Image();
+            img.onload = function() {
+                globalImg = img;
+                uploadText.innerText = "✅ 照片已就緒";
+                document.getElementById('dropZone').style.backgroundColor = "#F0F9FF";
+            };
+            img.src = URL.createObjectURL(file);
+        });
+
+        document.getElementById('generateBtn').addEventListener('click', () => callAI(false));
+        document.getElementById('randomStyleBtn').addEventListener('click', () => callAI(true));
+
+        async function callAI(isRandom) {
+            const key = document.getElementById('apiKey').value.trim();
+            const title = document.getElementById('eventTitle').value.trim();
+            const name = document.getElementById('name').value.trim();
+
+            if (!title || !name || !globalImg) return alert("請填寫所有資料並上傳照片");
+
+            const btnText = document.getElementById('btnText');
+            const loader = document.getElementById('loader');
+            const aiStatus = document.getElementById('aiStatus');
+
+            btnText.innerText = "AI 正在設計...";
+            loader.classList.remove('hidden');
+
+            // 保底方案
+            let design = {
+                bgColor: "#FFFFFF", textColor: "#000000", accentColor: "#2563EB",
+                slogan: "精彩活動，共創未來", fontStyle: "sans-serif", layout: "center"
+            };
+
+            if (key) {
+                try {
+                    const prompt = `你是一位平面設計師。活動「${title}」，講者「${name}」。請決定海報風格方案，嚴格只回傳 JSON：{"bgColor":"背景16進位色","textColor":"文字16進位色","accentColor":"裝飾16進位色","slogan":"8字內繁體中文標語","fontStyle":"serif或sans-serif","layout":"center或split或corner"}`;
+                    const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await resp.json();
+                    const jsonTxt = data.candidates[0].content.parts[0].text.match(/\{[\s\S]*\}/)[0];
+                    design = JSON.parse(jsonTxt);
+                    aiStatus.innerText = `✨ AI 設計完成：已套用「${design.slogan}」方案`;
+                } catch (e) {
+                    aiStatus.innerText = "⚠️ API 異常，套用預設設計模式";
+                }
+            } else {
+                aiStatus.innerText = "💡 使用預設美感模式";
+            }
+
+            render('pCanvas', title, name, design);
+            render('lCanvas', title, name, design);
+            document.getElementById('resultArea').classList.remove('hidden');
+            btnText.innerText = "啟動 AI 智能設計";
+            loader.classList.add('hidden');
+            window.scrollTo({ top: document.getElementById('resultArea').offsetTop, behavior: 'smooth' });
+        }
+
+        function render(id, title, name, design) {
+            const cvs = document.getElementById(id);
+            const ctx = cvs.getContext('2d');
+            const w = cvs.width, h = cvs.height;
+            const isP = h > w;
+
+            ctx.fillStyle = design.bgColor;
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.globalAlpha = 0.2;
+            ctx.fillStyle = design.accentColor;
+            ctx.beginPath();
+            ctx.arc(w * Math.random(), h * 0.2, w * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            if (globalImg) {
+                const r = isP ? (w * 0.9) / globalImg.width : (h * 0.85) / globalImg.height;
+                const dw = globalImg.width * r, dh = globalImg.height * r;
+                ctx.drawImage(globalImg, isP ? (w - dw) / 2 : w - dw, h - dh, dw, dh);
+            }
+
+            ctx.fillStyle = design.textColor;
+            ctx.textAlign = isP ? "center" : "left";
+            const x = isP ? w / 2 : w * 0.08;
+            const font = design.fontStyle === "serif" ? "Noto Serif TC" : "Noto Sans TC";
+
+            ctx.font = `900 ${w * 0.09}px "${font}"`;
+            ctx.fillText(title, x, h * 0.18);
+            ctx.fillStyle = design.accentColor;
+            ctx.font = `700 ${w * 0.045}px "Noto Sans TC"`;
+            ctx.fillText(design.slogan, x, h * 0.25);
+            ctx.fillStyle = design.textColor;
+            ctx.font = `900 ${w * 0.065}px "${font}"`;
+            ctx.fillText(name, x, h * 0.35);
+            ctx.font = `bold ${w * 0.035}px "Noto Sans TC"`;
+            ctx.fillText(`${document.getElementById('date').value} ｜ ${document.getElementById('time').value}`, x, h * 0.43);
+            
+            ctx.strokeStyle = design.accentColor;
+            ctx.lineWidth = 15;
+            ctx.strokeRect(40, 40, w - 80, h - 80);
+        }
+
+        function download(id) {
+            const a = document.createElement('a');
+            a.download = 'AI海報.png';
+            a.href = document.getElementById(id).toDataURL();
+            a.click();
+        }
+    </script>
+</body>
+</html>
