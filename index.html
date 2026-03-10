@@ -12,20 +12,21 @@
         button { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         #genBtn { background: #2563eb; color: white; }
         #randBtn { background: #0f172a; color: white; font-size: 15px; }
-        #status { font-size: 13px; color: #475569; margin-top: 20px; padding: 12px; background: #f1f5f9; border-radius: 10px; min-height: 20px; word-break: break-all; border-left: 4px solid #2563eb; }
+        #status { font-size: 13px; color: #475569; margin-top: 20px; padding: 12px; background: #f1f5f9; border-radius: 10px; min-height: 20px; word-break: break-all; border-left: 4px solid #2563eb; line-height: 1.5; }
         #result { display: none; margin-top: 40px; width: 100%; max-width: 1000px; }
         .canvas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         @media (max-width: 700px) { .canvas-grid { grid-template-columns: 1fr; } }
         canvas { width: 100%; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); }
         .dl-btn { text-align: center; display: block; margin-top: 15px; color: #2563eb; text-decoration: none; font-weight: bold; font-size: 14px; }
-        #uploadBox { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; cursor: pointer; border-radius: 16px; color: #64748b; font-weight: bold; margin: 15px 0; }
+        #uploadBox { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; cursor: pointer; border-radius: 16px; color: #64748b; font-weight: bold; margin: 15px 0; transition: 0.3s; }
+        #uploadBox:hover { border-color: #2563eb; background: #f8fafc; }
     </style>
 </head>
 <body>
 
     <div class="card">
         <h2 style="margin:0 0 5px 0; text-align:center;">AI 視覺設計師</h2>
-        <p style="text-align:center; color:#94a3b8; font-size:14px; margin-bottom:20px;">Gemini 1.5 專業海報排版</p>
+        <p style="text-align:center; color:#94a3b8; font-size:14px; margin-bottom:20px;">由 Gemini 1.5 提供設計方案</p>
         
         <input type="password" id="key" placeholder="貼上金鑰 (AIza...)">
         <input type="text" id="title" placeholder="活動名稱">
@@ -36,22 +37,20 @@
         </div>
         <div id="uploadBox">
             <input type="file" id="file" style="display:none" accept="image/*">
-            <span id="upTxt">📷 點擊上傳主講人照片</span>
+            <span id="upTxt">📷 點擊上傳照片</span>
         </div>
         <button id="genBtn">啟動 AI 智能設計</button>
         <button id="randBtn">🎲 隨機變換藝術風格</button>
-        <div id="status">準備就緒，請輸入資料。</div>
+        <div id="status">準備就緒。</div>
     </div>
 
     <div id="result">
         <div class="canvas-grid">
             <div style="display:flex; flex-direction:column; align-items:center;">
-                <span style="font-size:12px; color:#94a3b8; font-weight:bold; margin-bottom:10px;">直式 (9:16)</span>
                 <canvas id="pc" width="1080" height="1920"></canvas>
                 <a href="#" class="dl-btn" onclick="download('pc')">下載直式圖</a>
             </div>
             <div style="display:flex; flex-direction:column; align-items:center;">
-                <span style="font-size:12px; color:#94a3b8; font-weight:bold; margin-bottom:10px;">橫式 (16:9)</span>
                 <canvas id="lc" width="1920" height="1080"></canvas>
                 <a href="#" class="dl-btn" onclick="download('lc')">下載橫式圖</a>
             </div>
@@ -59,7 +58,6 @@
     </div>
 
     <script>
-        // 設定初始時間
         document.getElementById('date').value = new Date().toISOString().split('T')[0];
         document.getElementById('time').value = "14:00";
 
@@ -72,14 +70,12 @@
         fileIn.onchange = (e) => {
             const f = e.target.files[0];
             if (!f) return;
-            status.innerText = "⌛ 正在讀取照片...";
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const img = new Image();
                 img.onload = () => {
                     imgObj = img;
                     status.innerText = "✅ 照片讀取成功！";
-                    upBox.style.background = "#f8fafc";
                     upBox.style.borderColor = "#2563eb";
                 };
                 img.src = ev.target.result;
@@ -95,35 +91,44 @@
             const title = document.getElementById('title').value.trim();
             const user = document.getElementById('user').value.trim();
 
-            if (!title || !user || !imgObj) return alert("請完整填寫名稱、姓名並上傳照片");
+            if (!title || !user || !imgObj) return alert("請填寫所有欄位並上傳照片");
 
-            status.innerText = "🤖 正在聯絡 AI 設計師規劃美學方案...";
+            status.innerText = "🤖 AI 設計師正在尋找最佳通訊路徑...";
             
-            // 保底設計
             let config = { bg: "#ffffff", text: "#000000", accent: "#2563eb", slogan: "突破自我，共創未來", layout: "center" };
 
             if (key) {
+                const styles = ["梵谷", "包浩斯", "莫蘭迪", "賽博龐克", "瑞士極簡", "日系禪意"];
+                const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+                const prompt = `你是一位專業設計師。活動「${title}」，講者「${user}」。${isRandom ? `風格：${randomStyle}。` : ''}請回傳 JSON：{"bg":"背景色16進位","text":"文字色16進位","accent":"強調色16進位","slogan":"8字內標語","layout":"center或split"}。嚴禁其他文字。`;
+
                 try {
-                    // 隨機風格庫
-                    const styles = ["梵谷星夜配色", "包浩斯幾何色彩", "莫蘭迪高級灰", "賽博龐克霓虹", "瑞士極簡設計", "日系禪意木色"];
-                    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+                    // 自動嘗試不同版本路徑
+                    const versions = ['v1beta', 'v1'];
+                    let response = null;
+                    let lastError = "";
 
-                    const prompt = `你是一位平面設計師。活動「${title}」，講者「${user}」。
-                    ${isRandom ? `請指定使用「${randomStyle}」的視覺美學。` : `請根據活動內容設計最適合的風格。`}
-                    請決定設計基因，僅回傳 JSON：{"bg":"背景16進位色","text":"文字16進位色","accent":"裝飾16進位色","slogan":"8字內繁體中文標語","layout":"center或split"}。
-                    嚴禁回傳 markdown 或任何非 JSON 文字。`;
-                    
-                    // 修正：使用 v1 穩定路徑
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-
-                    if (!response.ok) {
-                        const err = await response.json();
-                        throw new Error(`API 報錯: ${err.error.message}`);
+                    for (let ver of versions) {
+                        try {
+                            const url = `https://generativelanguage.googleapis.com/${ver}/models/gemini-1.5-flash:generateContent?key=${key}`;
+                            const res = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                            });
+                            if (res.ok) {
+                                response = res;
+                                break;
+                            } else {
+                                const errJson = await res.json();
+                                lastError = errJson.error.message;
+                            }
+                        } catch (e) {
+                            lastError = e.message;
+                        }
                     }
+
+                    if (!response) throw new Error(lastError || "所有 API 路徑皆無法連線");
 
                     const data = await response.json();
                     const rawText = data.candidates[0].content.parts[0].text;
@@ -131,14 +136,14 @@
                     
                     if (jsonMatch) {
                         config = JSON.parse(jsonMatch[0]);
-                        status.innerText = `✨ AI 設計成功！已套用 ${isRandom ? randomStyle : '專業'} 排版方案。`;
+                        status.innerText = `✨ AI 設計成功！已套用 ${isRandom ? randomStyle : '專業'} 方案。`;
                     }
                 } catch (err) {
                     console.error(err);
-                    status.innerText = "❌ AI 串接失敗。原因：" + err.message + " (已切換保底模式)";
+                    status.innerText = "❌ AI 串接失敗，改用預設設計。原因：" + err.message;
                 }
             } else {
-                status.innerText = "💡 使用內建預設美感模式生成。";
+                status.innerText = "💡 未輸入金鑰，採用預設美感模式。";
             }
 
             draw('pc', title, user, config);
@@ -153,11 +158,9 @@
             const w = cvs.width, h = cvs.height;
             const isP = h > w;
 
-            // 繪製背景
             ctx.fillStyle = conf.bg;
             ctx.fillRect(0, 0, w, h);
 
-            // 裝飾色塊
             ctx.globalAlpha = 0.2;
             ctx.fillStyle = conf.accent;
             ctx.beginPath();
@@ -165,7 +168,6 @@
             ctx.fill();
             ctx.globalAlpha = 1.0;
 
-            // 繪製主講人
             if (imgObj) {
                 const r = isP ? (w * 0.9) / imgObj.width : (h * 0.85) / imgObj.height;
                 const dw = imgObj.width * r, dh = imgObj.height * r;
@@ -174,31 +176,22 @@
                 ctx.drawImage(imgObj, dx, dy, dw, dh);
             }
 
-            // 繪製文字
             ctx.fillStyle = conf.text;
             ctx.textAlign = isP ? "center" : "left";
             const x = isP ? w/2 : 100;
 
-            // 活動名
             ctx.font = `900 ${w * 0.09}px sans-serif`;
             ctx.fillText(title, x, h * 0.18);
-            
-            // 標語
             ctx.fillStyle = conf.accent;
             ctx.font = `bold ${w * 0.045}px sans-serif`;
             ctx.fillText(conf.slogan, x, h * 0.26);
-            
-            // 姓名
             ctx.fillStyle = conf.text;
             ctx.font = `900 ${w * 0.07}px sans-serif`;
             ctx.fillText(`主講｜${user}`, x, h * 0.36);
-
-            // 日期時間
             ctx.font = `bold ${w * 0.035}px sans-serif`;
             const dateStr = document.getElementById('date').value.replace(/-/g, '/') + " " + document.getElementById('time').value;
             ctx.fillText(dateStr, x, h * 0.44);
 
-            // 設計邊框
             ctx.strokeStyle = conf.accent;
             ctx.lineWidth = 15;
             ctx.strokeRect(40, 40, w - 80, h - 80);
