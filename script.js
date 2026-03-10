@@ -1,8 +1,11 @@
-// 初始化時間
-const dt = new Date();
-document.getElementById('date').value = dt.toISOString().split('T')[0];
-document.getElementById('time').value = dt.toTimeString().slice(0, 5);
+// 1. 初始化日期與時間
+window.addEventListener('load', () => {
+    const dt = new Date();
+    document.getElementById('date').value = dt.toISOString().split('T')[0];
+    document.getElementById('time').value = dt.toTimeString().slice(0, 5);
+});
 
+// 全域變數存儲圖片
 let globalImg = null;
 
 // 風格配置
@@ -13,7 +16,7 @@ const STYLES = [
     { name: "和風雅緻", bg: "#F8F1E7", text: "#433D3C", accent: "#BC6C25", font: "Noto Serif TC" }
 ];
 
-// 照片上傳處理 (穩定版)
+// 2. 照片上傳處理 (保底機制：一選圖就生效)
 document.getElementById('photoUpload').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -21,93 +24,87 @@ document.getElementById('photoUpload').addEventListener('change', async (e) => {
     const statusText = document.getElementById('uploadStatus');
     const msg = document.getElementById('msg');
     
-    statusText.innerText = "⏳ 處理中...";
-    msg.innerText = "正在處理照片，請稍候...";
-
-    // 建立一個讀取原圖的 function 作為保底
-    const loadOriginal = (f) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => { globalImg = img; };
-            img.src = event.target.result;
+    // A. 立即載入原始圖作為保底，防止生成時報錯
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => { 
+            globalImg = img; 
+            statusText.innerText = "✅ 照片已載入";
+            statusText.parentElement.parentElement.classList.add('bg-blue-50', 'border-blue-400');
         };
-        reader.readAsDataURL(f);
+        img.src = event.target.result;
     };
+    reader.readAsDataURL(file);
 
+    // B. 嘗試背景去除 (在後台跑，成功後會自動替換掉 globalImg)
+    msg.innerText = "正在嘗試 AI 智慧去背...";
     try {
-        // 嘗試去背，設定 8 秒超時
         const blob = await Promise.race([
             imglyRemoveBackground(file),
             new Promise((_, j) => setTimeout(() => j(new Error("Timeout")), 8000))
         ]);
-        globalImg = await createImageBitmap(blob);
-        statusText.innerText = "✅ 去背完成";
-        msg.innerText = "照片已就緒。";
+        const transparentImg = await createImageBitmap(blob);
+        globalImg = transparentImg; // 成功後替換成去背圖
+        msg.innerText = "AI 去背成功！海報將更精美。";
     } catch (err) {
-        console.warn("去背失敗或超時，切換至原圖模式");
-        statusText.innerText = "⚠️ 使用原圖";
-        msg.innerText = "去背失敗，已自動使用原圖。";
-        loadOriginal(file);
+        console.warn("去背跳過:", err);
+        msg.innerText = "去背環境限制，將使用原圖生成。";
     }
 });
 
-// 生成按鈕 (修正 API 路徑並加入保底)
+// 3. 生成按鈕
 document.getElementById('generateBtn').addEventListener('click', async () => {
-    const key = document.getElementById('apiKey').value;
-    const title = document.getElementById('eventTitle').value || "精彩活動";
-    const name = document.getElementById('name').value || "神祕嘉賓";
+    // 取得所有欄位
+    const key = document.getElementById('apiKey').value.trim();
+    const title = document.getElementById('eventTitle').value.trim();
+    const name = document.getElementById('name').value.trim();
 
-    if (!globalImg) {
-        alert("請先上傳照片！");
-        return;
-    }
+    // 嚴格檢查是否漏填 (尤其是 globalImg)
+    if (!title) return alert("請輸入活動名稱");
+    if (!name) return alert("請輸入主講人姓名");
+    if (!globalImg) return alert("請上傳主講人照片");
 
     const btnText = document.getElementById('btnText');
     const loader = document.getElementById('btnLoader');
-    const msg = document.getElementById('msg');
-    
     btnText.innerText = "設計中...";
     loader.classList.remove('hidden');
 
     const style = STYLES[Math.floor(Math.random() * STYLES.length)];
-    let slogan = "夢想啟航，精彩無限"; // 預設保底口號
+    let slogan = "創新未來，共創精彩"; // 預設標語
 
+    // 4. 串接 Gemini API
     if (key) {
         try {
-            // 修正為 v1 版本路徑
             const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `活動名稱「${title}」，講者「${name}」。請寫一句吸引人的繁體中文短標語（8字內）。只回傳文字內容。` }] }]
+                    contents: [{ parts: [{ text: `活動：「${title}」，講者：「${name}」。寫一句繁體中文標語（8字內）。只回傳文字。` }] }]
                 })
             });
             const resData = await resp.json();
-            
             if (resData.candidates && resData.candidates[0].content.parts[0].text) {
                 slogan = resData.candidates[0].content.parts[0].text.trim();
             }
         } catch (err) {
-            console.error("AI 標語生成失敗，使用預設口號:", err);
-            msg.innerText = "API 調用失敗，已使用預設口號生成海報。";
+            console.error("API 失敗，改用預設標語");
         }
-    } else {
-        msg.innerText = "未輸入金鑰，使用預設風格生成。";
     }
 
-    // 渲染畫布 (無論 API 是否成功都會執行)
+    // 5. 開始繪圖
     render('pCanvas', title, name, slogan, style);
     render('lCanvas', title, name, slogan, style);
 
+    // 顯示結果
     document.getElementById('resultArea').style.display = 'block';
     btnText.innerText = "生成宣傳海報";
     loader.classList.add('hidden');
     
-    // 平滑捲動到結果
+    // 自動跳轉
     setTimeout(() => {
-        window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 50, behavior: 'smooth' });
-    }, 100);
+        window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 20, behavior: 'smooth' });
+    }, 200);
 });
 
 function render(id, title, name, slogan, style) {
@@ -117,33 +114,57 @@ function render(id, title, name, slogan, style) {
     const h = cvs.height;
     const isP = h > w;
 
-    ctx.clearRect(0, 0, w, h);
-
-    // 背景
+    // 清空背景
     ctx.fillStyle = style.bg;
     ctx.fillRect(0, 0, w, h);
 
-    // 藝術裝飾
-    ctx.globalAlpha = 0.15;
+    // 裝飾圓形
+    ctx.globalAlpha = 0.1;
     ctx.fillStyle = style.accent;
     ctx.beginPath();
-    ctx.arc(w * 0.8, h * 0.2, w * 0.6, 0, Math.PI * 2);
+    ctx.arc(w * 0.9, h * 0.1, w * 0.6, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1.0;
 
-    // 繪製人物
+    // 畫人物
     if (globalImg) {
         const ratio = isP ? (w * 0.9) / globalImg.width : (h * 0.85) / globalImg.height;
         const dw = globalImg.width * ratio;
         const dh = globalImg.height * ratio;
-        const dx = isP ? (w - dw) / 2 : w * 0.5;
+        const dx = isP ? (w - dw) / 2 : w * 0.55;
         const dy = h - dh;
-        
-        ctx.save();
         ctx.drawImage(globalImg, dx, dy, dw, dh);
-        ctx.restore();
     }
 
     // 文字排版
     ctx.fillStyle = style.text;
-    ctx.textAlign = isP ? "center" : "lef
+    ctx.textAlign = isP ? "center" : "left";
+    const x = isP ? w / 2 : w * 0.08;
+
+    ctx.font = `900 ${w * 0.09}px "Noto Sans TC", sans-serif`;
+    ctx.fillText(title, x, h * 0.18);
+
+    ctx.fillStyle = style.accent;
+    ctx.font = `700 ${w * 0.045}px "Noto Sans TC", sans-serif`;
+    ctx.fillText(slogan, x, h * 0.25);
+
+    ctx.fillStyle = style.text;
+    ctx.font = `900 ${w * 0.07}px "Noto Sans TC", sans-serif`;
+    ctx.fillText(name, x, h * 0.35);
+
+    const date = document.getElementById('date').value.replace(/-/g, '/');
+    const time = document.getElementById('time').value;
+    ctx.font = `bold ${w * 0.038}px "Noto Sans TC", sans-serif`;
+    ctx.fillText(`${date} ｜ ${time}`, x, h * 0.43);
+
+    ctx.strokeStyle = style.accent;
+    ctx.lineWidth = 15;
+    ctx.strokeRect(40, 40, w - 80, h - 80);
+}
+
+function download(id) {
+    const link = document.createElement('a');
+    link.download = `海報-${id}.png`;
+    link.href = document.getElementById(id).toDataURL('image/png');
+    link.click();
+}
