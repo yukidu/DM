@@ -2,65 +2,153 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Gemini API 最簡測試工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini 2.5 API 終極測試工具</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; line-height: 1.6; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; }
-        button { padding: 10px 20px; cursor: pointer; background: #4285f4; color: white; border: none; border-radius: 4px; }
-        #result { margin-top: 20px; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
-        .success { background: #e6ffed; border: 1px solid #b7eb8f; color: #237804; }
-        .error { background: #fff1f0; border: 1px solid #ffa39e; color: #cf1322; }
+        :root {
+            --primary-color: #4285f4;
+            --success-color: #34a853;
+            --error-color: #ea4335;
+            --bg-color: #f8f9fa;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+        }
+        h2 { text-align: center; color: #333; margin-bottom: 1.5rem; }
+        .input-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; color: #555; }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus { border-color: var(--primary-color); outline: none; }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        #result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            display: none;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .success { background-color: #e6ffed; border: 1px solid #b7eb8f; color: #14532d; }
+        .error { background-color: #fff1f0; border: 1px solid #ffa39e; color: #7f1d1d; }
+        .loading { text-align: center; color: #666; font-style: italic; }
     </style>
 </head>
 <body>
-    <h2>Gemini API 測試工具</h2>
-    <p>請輸入你的 API 金鑰並點擊測試：</p>
-    <input type="text" id="apiKey" placeholder="在此輸入 AIzaSy... 開頭的金鑰">
-    <button onclick="testGemini()">立即發送測試請求</button>
 
-    <div id="result" style="display:none;"></div>
+<div class="container">
+    <h2>Gemini API 測試</h2>
+    
+    <div class="input-group">
+        <label for="apiKey">API 金鑰</label>
+        <input type="password" id="apiKey" placeholder="貼上你的 AIzaSy... 金鑰">
+    </div>
 
-    <script>
-        async function testGemini() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            const resultDiv = document.getElementById('result');
-            
-            if (!apiKey) {
-                alert("請先輸入金鑰！");
-                return;
-            }
+    <div class="input-group">
+        <label for="modelName">模型名稱 (自動偵測)</label>
+        <input type="text" id="modelName" value="gemini-2.5-flash">
+    </div>
 
-            resultDiv.style.display = 'block';
-            resultDiv.className = '';
-            resultDiv.innerText = "連線中，請稍候...";
+    <button id="sendBtn" onclick="runTest()">發送測試請求</button>
 
-            // 使用目前最穩定的 gemini-1.5-flash 模型
-const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    <div id="result"></div>
+</div>
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: "你好，這是一次連線測試。" }] }]
-                    })
-                });
+<script>
+    async function runTest() {
+        const apiKey = document.getElementById('apiKey').value.trim();
+        const modelName = document.getElementById('modelName').value.trim();
+        const btn = document.getElementById('sendBtn');
+        const resultDiv = document.getElementById('result');
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    resultDiv.className = 'success';
-                    resultDiv.innerText = "✅ 串接成功！\n\nAI 回應：\n" + data.candidates[0].content.parts[0].text;
-                } else {
-                    resultDiv.className = 'error';
-                    // 顯示詳細的錯誤訊息
-                    resultDiv.innerText = `❌ 串接失敗 (錯誤代碼: ${response.status})\n\n詳細原因：\n${JSON.stringify(data.error, null, 2)}`;
-                }
-            } catch (err) {
-                resultDiv.className = 'error';
-                resultDiv.innerText = `❌ 網路連線錯誤 (CORS 或 無法連線)\n\n原因：${err.message}\n(如果你在中國/香港，請確認網路環境能否存取 Google 服務)`;
-            }
+        if (!apiKey) {
+            alert("請輸入 API 金鑰！");
+            return;
         }
-    </script>
+
+        // 初始化 UI 狀態
+        btn.disabled = true;
+        btn.innerText = "通訊中...";
+        resultDiv.style.display = "block";
+        resultDiv.className = "loading";
+        resultDiv.innerText = "正在連線至 Google AI 伺服器...";
+
+        // 設定 API 網址 (根據你的截圖使用 v1beta 版本)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+        // 準備請求資料
+        const payload = {
+            contents: [{
+                parts: [{ text: "你好！如果你收到了這則訊息，代表連線成功。請簡單自我介紹。" }]
+            }]
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // 成功抓取回應
+                const aiResponse = data.candidates[0].content.parts[0].text;
+                resultDiv.className = "success";
+                resultDiv.innerText = "✅ 串接成功！\n\nAI 回應：\n" + aiResponse;
+            } else {
+                // Google 回傳錯誤 (例如 404, 403, 400)
+                resultDiv.className = "error";
+                resultDiv.innerText = `❌ API 回傳錯誤 (${response.status})\n\n原因：${data.error.message}\n\n建議：請確認你的模型名稱是否為 ${modelName}`;
+            }
+        } catch (error) {
+            // 網路層級的錯誤 (例如 CORS, 斷網)
+            resultDiv.className = "error";
+            resultDiv.innerText = `❌ 網路連線失敗\n\n原因：${error.message}\n(提示：若在香港/大陸請檢查 VPN)`;
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "發送測試請求";
+        }
+    }
+</script>
+
 </body>
 </html>
