@@ -3,230 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 視覺海報設計師</title>
+    <title>AI 海報設計大師 - 診斷版</title>
     <style>
-        /* 標準 CSS 排版，不依賴外部套件 */
-        body { 
-            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; 
-            background-color: #f0f2f5; 
-            margin: 0; padding: 20px; color: #333;
-            display: flex; flex-direction: column; align-items: center;
-        }
-        .container { 
-            background: white; width: 100%; max-width: 500px; 
-            padding: 30px; border-radius: 20px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-        }
-        h1 { text-align: center; margin-bottom: 5px; font-weight: 900; }
-        p.subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 25px; }
-        
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-size: 12px; font-weight: bold; color: #aaa; margin-bottom: 5px; }
-        input { 
-            width: 100%; padding: 12px; border: 1px solid #eee; 
-            border-radius: 10px; box-sizing: border-box; font-size: 16px;
-        }
-        .row { display: flex; gap: 10px; }
-        .row input { flex: 1; }
-
-        #dropZone { 
-            border: 2px dashed #ddd; padding: 30px; text-align: center; 
-            border-radius: 15px; margin: 20px 0; cursor: pointer; color: #2563eb; font-weight: bold;
-        }
-
-        button { 
-            width: 100%; padding: 15px; border: none; border-radius: 12px; 
-            font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-bottom: 10px;
-        }
-        #generateBtn { background-color: #2563eb; color: white; }
-        #randomStyleBtn { background-color: #111; color: white; font-size: 14px; }
-        
-        #aiStatus { text-align: center; font-size: 12px; color: #2563eb; font-weight: bold; margin-top: 10px; }
-        
-        #resultArea { margin-top: 40px; width: 100%; max-width: 1000px; display: none; }
-        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        @media (max-width: 768px) { .result-grid { grid-template-columns: 1fr; } }
-        
-        .poster-box { display: flex; flex-direction: column; align-items: center; }
-        canvas { width: 100%; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); background: #eee; }
-        .download-btn { margin-top: 15px; color: #2563eb; text-decoration: underline; cursor: pointer; font-weight: bold; }
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        #genBtn { background: #2563eb; color: white; margin-top: 10px; }
+        #randBtn { background: #111; color: white; margin-top: 10px; }
+        #status { font-size: 13px; color: #666; margin-top: 15px; padding: 10px; background: #eee; border-radius: 5px; min-height: 20px; word-break: break-all; }
+        #result { display: none; margin-top: 30px; width: 100%; max-width: 900px; }
+        .canvas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .canvas-grid { grid-template-columns: 1fr; } }
+        canvas { width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .dl-link { text-align: center; display: block; margin-top: 10px; color: #2563eb; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>AI 視覺設計師</h1>
-        <p class="subtitle">由 Gemini 1.5 全權負責美感與構圖</p>
-        
-        <div class="form-group">
-            <label>GEMINI API 金鑰</label>
-            <input type="password" id="apiKey" placeholder="請貼上金鑰...">
-        </div>
-
-        <div class="form-group">
-            <input type="text" id="eventTitle" placeholder="活動名稱">
-        </div>
-
-        <div class="form-group">
-            <input type="text" id="name" placeholder="講者姓名">
-        </div>
-
-        <div class="row">
+    <div class="card">
+        <h2 style="margin-top:0">AI 海報設計師</h2>
+        <input type="password" id="key" placeholder="貼上 Gemini API 金鑰 (AIza...)">
+        <input type="text" id="title" placeholder="活動名稱">
+        <input type="text" id="user" placeholder="講者姓名">
+        <div style="display:flex; gap:10px">
             <input type="date" id="date">
             <input type="time" id="time">
         </div>
-
-        <div id="dropZone">
-            <input type="file" id="photoUpload" accept="image/*" style="display:none">
-            <span id="uploadText">點擊上傳照片</span>
+        <div id="uploadBox" style="border:2px dashed #ccc; padding:20px; text-align:center; cursor:pointer; margin:10px 0; border-radius:10px; color:#666">
+            <input type="file" id="file" style="display:none" accept="image/*">
+            <span id="upTxt">📷 點擊上傳照片</span>
         </div>
-
-        <button id="generateBtn">啟動 AI 智能設計</button>
-        <button id="randomStyleBtn">🎲 隨機變換藝術風格</button>
-        
-        <p id="aiStatus"></p>
+        <button id="genBtn">讓 AI 幫我設計</button>
+        <button id="randBtn">🎲 隨機變換設計</button>
+        <div id="status">系統就緒。等待操作...</div>
     </div>
 
-    <div id="resultArea">
-        <div class="result-grid">
-            <div class="poster-box">
-                <p style="color:#aaa; font-weight:bold; font-size:12px;">直式海報 (9:16)</p>
-                <canvas id="pCanvas" width="1080" height="1920"></canvas>
-                <div class="download-btn" onclick="download('pCanvas')">下載直式圖</div>
+    <div id="result">
+        <div class="canvas-grid">
+            <div>
+                <canvas id="pc" width="1080" height="1920"></canvas>
+                <a href="#" class="dl-link" onclick="download('pc')">下載直式</a>
             </div>
-            <div class="poster-box">
-                <p style="color:#aaa; font-weight:bold; font-size:12px;">橫式海報 (16:9)</p>
-                <canvas id="lCanvas" width="1920" height="1080"></canvas>
-                <div class="download-btn" onclick="download('lCanvas')">下載橫式圖</div>
+            <div>
+                <canvas id="lc" width="1920" height="1080"></canvas>
+                <a href="#" class="dl-link" onclick="download('lc')">下載橫式</a>
             </div>
         </div>
     </div>
-
-    <!-- 載入去背套件 -->
-    <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@latest/dist/bundle.js"></script>
 
     <script>
-        // 設定初始時間
-        const now = new Date();
-        document.getElementById('date').value = now.toISOString().split('T')[0];
-        document.getElementById('time').value = now.toTimeString().slice(0, 5);
+        // 設定今天日期
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('time').value = "14:00";
 
-        let globalImg = null;
+        let imgObj = null;
+        const upBox = document.getElementById('uploadBox');
+        const fileIn = document.getElementById('file');
+        const status = document.getElementById('status');
 
-        // 點擊上傳框
-        document.getElementById('dropZone').onclick = () => document.getElementById('photoUpload').click();
-
-        document.getElementById('photoUpload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('uploadText').innerText = "⌛ 載入中...";
-            const img = new Image();
-            img.onload = function() {
-                globalImg = img;
-                document.getElementById('uploadText').innerText = "✅ 照片已就緒";
-                document.getElementById('dropZone').style.borderColor = "#2563eb";
+        upBox.onclick = () => fileIn.click();
+        fileIn.onchange = (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            status.innerText = "正在讀取圖片...";
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    imgObj = img;
+                    status.innerText = "✅ 圖片載入完成！";
+                    upBox.style.background = "#eef";
+                };
+                img.src = ev.target.result;
             };
-            img.src = URL.createObjectURL(file);
-        });
+            reader.readAsDataURL(f);
+        };
 
-        document.getElementById('generateBtn').onclick = () => callAI(false);
-        document.getElementById('randomStyleBtn').onclick = () => callAI(true);
+        document.getElementById('genBtn').onclick = () => startDesign(false);
+        document.getElementById('randBtn').onclick = () => startDesign(true);
 
-        async function callAI(isRandom) {
-            const key = document.getElementById('apiKey').value.trim();
-            const title = document.getElementById('eventTitle').value.trim();
-            const name = document.getElementById('name').value.trim();
+        async function startDesign(random) {
+            const key = document.getElementById('key').value.trim();
+            const title = document.getElementById('title').value.trim();
+            const user = document.getElementById('user').value.trim();
 
-            if (!title || !name || !globalImg) {
-                alert("請完整填寫活動名稱、姓名並上傳照片！");
-                return;
-            }
+            if (!title || !user || !imgObj) return alert("請填寫名稱、姓名並上傳照片");
 
-            const btn = document.getElementById('generateBtn');
-            const status = document.getElementById('aiStatus');
-            btn.innerText = "AI 正在設計中...";
-            btn.disabled = true;
-
-            // 預設設計基因 (保底方案)
-            let design = {
-                bgColor: "#FFFFFF", textColor: "#000000", accentColor: "#2563eb",
-                slogan: "精彩活動，共創未來", fontStyle: "sans-serif"
+            status.innerText = "🚀 正在聯絡 Gemini AI 設計師...";
+            
+            // 保底設定
+            let config = {
+                bg: "#ffffff", text: "#000000", accent: "#2563eb",
+                slogan: "精彩活動，邀您參與", layout: "center"
             };
 
             if (key) {
                 try {
-                    const prompt = `你是一位海報設計師。活動「${title}」，講者「${name}」。請回傳 JSON：{"bgColor":"背景16進位","textColor":"文字16進位","accentColor":"裝飾16進位","slogan":"8字內標語","fontStyle":"serif或sans-serif"}`;
-                    const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                    const prompt = `你是一位專業設計師。活動名稱「${title}」，講者「${user}」。請決定海報配色與排版方案。必須只回傳一個 JSON 物件，格式如下：{"bg":"背景色","text":"文字色","accent":"強調色","slogan":"8字內繁體中文標語","layout":"center或split"}。不要回傳 markdown 代碼塊，不要回傳其他文字。`;
+                    
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
-                    const data = await resp.json();
-                    const text = data.candidates[0].content.parts[0].text;
-                    const jsonMatch = text.match(/\{[\s\S]*\}/);
-                    if (jsonMatch) design = JSON.parse(jsonMatch[0]);
-                    status.innerText = "✨ AI 設計成功！";
-                } catch (e) {
-                    status.innerText = "⚠️ API 連線失敗，套用預設風格";
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`API 錯誤: ${response.status} - ${errorData.error.message}`);
+                    }
+
+                    const data = await response.json();
+                    const rawText = data.candidates[0].content.parts[0].text;
+                    status.innerText = "📩 收到 AI 設計稿，正在解析...";
+                    
+                    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        config = JSON.parse(jsonMatch[0]);
+                        status.innerText = "✨ AI 設計成功！標語：" + config.slogan;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    status.innerText = "❌ AI 作用失敗。原因：" + err.message + " (已改用預設設計)";
                 }
             } else {
-                status.innerText = "💡 使用預設美感模式";
+                status.innerText = "💡 未輸入金鑰，採用內建美感模式。";
             }
 
-            render('pCanvas', title, name, design);
-            render('lCanvas', title, name, design);
-            document.getElementById('resultArea').style.display = "block";
-            btn.innerText = "啟動 AI 智能設計";
-            btn.disabled = false;
-            window.scrollTo({ top: document.getElementById('resultArea').offsetTop, behavior: 'smooth' });
+            draw('pc', title, user, config);
+            draw('lc', title, user, config);
+            document.getElementById('result').style.display = "block";
+            window.scrollTo(0, document.body.scrollHeight);
         }
 
-        function render(id, title, name, design) {
+        function draw(id, title, user, conf) {
             const cvs = document.getElementById(id);
             const ctx = cvs.getContext('2d');
             const w = cvs.width, h = cvs.height;
             const isP = h > w;
 
-            ctx.fillStyle = design.bgColor;
+            // 背景
+            ctx.fillStyle = conf.bg || "#fff";
             ctx.fillRect(0, 0, w, h);
 
-            ctx.globalAlpha = 0.2;
-            ctx.fillStyle = design.accentColor;
+            // 裝飾
+            ctx.globalAlpha = 0.15;
+            ctx.fillStyle = conf.accent || "#000";
             ctx.beginPath();
             ctx.arc(w * Math.random(), h * 0.2, w * 0.6, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 1.0;
 
-            if (globalImg) {
-                const r = isP ? (w * 0.9) / globalImg.width : (h * 0.8) / globalImg.height;
-                const dw = globalImg.width * r, dh = globalImg.height * r;
-                ctx.drawImage(globalImg, isP ? (w - dw) / 2 : w - dw, h - dh, dw, dh);
+            // 照片
+            if (imgObj) {
+                const r = isP ? (w * 0.8) / imgObj.width : (h * 0.8) / imgObj.height;
+                const dw = imgObj.width * r, dh = imgObj.height * r;
+                const dx = isP ? (w - dw) / 2 : w - dw - 50;
+                const dy = h - dh;
+                ctx.drawImage(imgObj, dx, dy, dw, dh);
             }
 
-            ctx.fillStyle = design.textColor;
-            ctx.textAlign = isP ? "center" : "left";
-            const x = isP ? w / 2 : 100;
+            // 文字
+            ctx.fillStyle = conf.text || "#000";
+            ctx.textAlign = (conf.layout === "center" || isP) ? "center" : "left";
+            const x = (ctx.textAlign === "center") ? w/2 : 80;
 
-            ctx.font = `900 ${w * 0.08}px sans-serif`;
+            ctx.font = `bold ${w * 0.08}px sans-serif`;
             ctx.fillText(title, x, h * 0.18);
-            ctx.fillStyle = design.accentColor;
+            
+            ctx.fillStyle = conf.accent || "#333";
             ctx.font = `bold ${w * 0.04}px sans-serif`;
-            ctx.fillText(design.slogan, x, h * 0.25);
-            ctx.fillStyle = design.textColor;
-            ctx.font = `900 ${w * 0.06}px sans-serif`;
-            ctx.fillText(`講者：${name}`, x, h * 0.35);
+            ctx.fillText(conf.slogan, x, h * 0.25);
+            
+            ctx.fillStyle = conf.text || "#000";
+            ctx.font = `bold ${w * 0.06}px sans-serif`;
+            ctx.fillText(`講者：${user}`, x, h * 0.35);
+
             ctx.font = `bold ${w * 0.03}px sans-serif`;
-            const dateStr = document.getElementById('date').value + "  " + document.getElementById('time').value;
+            const dateStr = document.getElementById('date').value + " " + document.getElementById('time').value;
             ctx.fillText(dateStr, x, h * 0.42);
 
-            ctx.strokeStyle = design.accentColor;
-            ctx.lineWidth = 20;
+            // 邊框
+            ctx.strokeStyle = conf.accent;
+            ctx.lineWidth = 15;
             ctx.strokeRect(40, 40, w - 80, h - 80);
         }
 
         function download(id) {
             const a = document.createElement('a');
-            a.download = 'AI海報.png';
+            a.download = '海報.png';
             a.href = document.getElementById(id).toDataURL();
             a.click();
         }
