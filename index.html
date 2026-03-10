@@ -7,7 +7,9 @@
     <style>
         body { font-family: sans-serif; background: #f0f4f8; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); width: 100%; max-width: 480px; }
+        .input-group { position: relative; width: 100%; }
         input { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
+        .toggle-key { position: absolute; right: 10px; top: 22px; cursor: pointer; font-size: 12px; color: #2563eb; font-weight: bold; background: #fff; padding: 0 5px; }
         .row { display: flex; gap: 10px; }
         button { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         #genBtn { background: #2563eb; color: white; }
@@ -26,9 +28,13 @@
 
     <div class="card">
         <h2 style="margin:0 0 5px 0; text-align:center;">AI 視覺設計師</h2>
-        <p style="text-align:center; color:#94a3b8; font-size:14px; margin-bottom:20px;">由 Gemini AI 提供專業排版方案</p>
+        <p style="text-align:center; color:#94a3b8; font-size:14px; margin-bottom:20px;">請確保輸入有效的 Gemini API 金鑰</p>
         
-        <input type="password" id="key" placeholder="貼上金鑰 (AIza...)">
+        <div class="input-group">
+            <input type="password" id="key" placeholder="貼上金鑰 (AIza...)">
+            <span class="toggle-key" onclick="toggleKey()">顯示</span>
+        </div>
+        
         <input type="text" id="title" placeholder="活動名稱">
         <input type="text" id="user" placeholder="主講人姓名">
         <div class="row">
@@ -62,150 +68,21 @@
         document.getElementById('time').value = "14:00";
 
         let imgObj = null;
+
+        function toggleKey() {
+            const keyInput = document.getElementById('key');
+            const toggleText = document.querySelector('.toggle-key');
+            if (keyInput.type === "password") {
+                keyInput.type = "text";
+                toggleText.innerText = "隱藏";
+            } else {
+                keyInput.type = "password";
+                toggleText.innerText = "顯示";
+            }
+        }
+
         const upBox = document.getElementById('uploadBox');
         const fileIn = document.getElementById('file');
         const status = document.getElementById('status');
 
         upBox.onclick = () => fileIn.click();
-        fileIn.onchange = (e) => {
-            const f = e.target.files[0];
-            if (!f) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const img = new Image();
-                img.onload = () => {
-                    imgObj = img;
-                    status.innerText = "✅ 照片讀取成功！";
-                    upBox.style.borderColor = "#2563eb";
-                };
-                img.src = ev.target.result;
-            };
-            reader.readAsDataURL(f);
-        };
-
-        document.getElementById('genBtn').onclick = () => startAI(false);
-        document.getElementById('randBtn').onclick = () => startAI(true);
-
-        async function startAI(isRandom) {
-            const key = document.getElementById('key').value.trim();
-            const title = document.getElementById('title').value.trim();
-            const user = document.getElementById('user').value.trim();
-
-            if (!title || !user || !imgObj) return alert("請完整填寫所有欄位並上傳照片");
-
-            status.innerText = "🤖 正在嘗試連接 AI 伺服器並切換最佳型號...";
-            
-            let config = { bg: "#ffffff", text: "#000000", accent: "#2563eb", slogan: "突破自我，共創未來", layout: "center" };
-
-            if (key) {
-                const styles = ["梵谷星夜", "包浩斯幾何", "莫蘭迪灰", "賽博龐克", "瑞士極簡", "日系禪意"];
-                const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-                const prompt = `你是一位專業設計師。活動「${title}」，講者「${user}」。${isRandom ? `風格：${randomStyle}。` : ''}請決定海報設計，僅回傳 JSON：{"bg":"背景16進位色","text":"文字16進位色","accent":"強調色16進位","slogan":"8字內標語","layout":"center或split"}。嚴禁其他文字。`;
-
-                const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
-                const versions = ['v1beta', 'v1'];
-                
-                let success = false;
-                let lastError = "";
-
-                // 嵌套迴圈嘗試所有路徑與型號組合
-                outer: for (let ver of versions) {
-                    for (let model of models) {
-                        try {
-                            const url = `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${key}`;
-                            const res = await fetch(url, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                            });
-
-                            if (res.ok) {
-                                const data = await res.json();
-                                const rawText = data.candidates[0].content.parts[0].text;
-                                const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-                                if (jsonMatch) {
-                                    config = JSON.parse(jsonMatch[0]);
-                                    status.innerText = `✨ AI 設計成功！(使用型號: ${model})。已套用 ${isRandom ? randomStyle : '專業'} 方案。`;
-                                    success = true;
-                                    break outer;
-                                }
-                            } else {
-                                const errJson = await res.json();
-                                lastError = errJson.error.message;
-                            }
-                        } catch (e) {
-                            lastError = e.message;
-                        }
-                    }
-                }
-
-                if (!success) {
-                    status.innerText = "❌ AI 串接失敗，改用預設設計。原因：" + lastError;
-                }
-            } else {
-                status.innerText = "💡 未輸入金鑰，採用預設美感模式。";
-            }
-
-            draw('pc', title, user, config);
-            draw('lc', title, user, config);
-            document.getElementById('result').style.display = "block";
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        }
-
-        function draw(id, title, user, conf) {
-            const cvs = document.getElementById(id);
-            const ctx = cvs.getContext('2d');
-            const w = cvs.width, h = cvs.height;
-            const isP = h > w;
-
-            ctx.fillStyle = conf.bg;
-            ctx.fillRect(0, 0, w, h);
-
-            ctx.globalAlpha = 0.2;
-            ctx.fillStyle = conf.accent;
-            ctx.beginPath();
-            ctx.arc(w * Math.random(), h * 0.2, w * 0.6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1.0;
-
-            if (imgObj) {
-                const r = isP ? (w * 0.9) / imgObj.width : (h * 0.85) / imgObj.height;
-                const dw = imgObj.width * r, dh = imgObj.height * r;
-                const dx = isP ? (w - dw) / 2 : w - dw;
-                const dy = h - dh;
-                ctx.drawImage(imgObj, dx, dy, dw, dh);
-            }
-
-            ctx.fillStyle = conf.text;
-            ctx.textAlign = isP ? "center" : "left";
-            const x = isP ? w/2 : 100;
-
-            ctx.font = `900 ${w * 0.09}px sans-serif`;
-            ctx.fillText(title, x, h * 0.18);
-            
-            ctx.fillStyle = conf.accent;
-            ctx.font = `bold ${w * 0.045}px sans-serif`;
-            ctx.fillText(conf.slogan, x, h * 0.26);
-            
-            ctx.fillStyle = conf.text;
-            ctx.font = `900 ${w * 0.07}px sans-serif`;
-            ctx.fillText(`主講｜${user}`, x, h * 0.36);
-
-            ctx.font = `bold ${w * 0.035}px sans-serif`;
-            const dateStr = document.getElementById('date').value.replace(/-/g, '/') + " " + document.getElementById('time').value;
-            ctx.fillText(dateStr, x, h * 0.44);
-
-            ctx.strokeStyle = conf.accent;
-            ctx.lineWidth = 15;
-            ctx.strokeRect(40, 40, w - 80, h - 80);
-        }
-
-        function download(id) {
-            const a = document.createElement('a');
-            a.download = `AI海報-${id}.png`;
-            a.href = document.getElementById(id).toDataURL('image/png');
-            a.click();
-        }
-    </script>
-</body>
-</html>
