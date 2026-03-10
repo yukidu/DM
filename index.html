@@ -26,7 +26,7 @@
 
     <div class="card">
         <h2 style="margin:0 0 5px 0; text-align:center;">AI 視覺設計師</h2>
-        <p style="text-align:center; color:#94a3b8; font-size:14px; margin-bottom:20px;">由 Gemini 1.5 提供設計方案</p>
+        <p style="text-align:center; color:#94a3b8; font-size:14px; margin-bottom:20px;">由 Gemini AI 提供專業排版方案</p>
         
         <input type="password" id="key" placeholder="貼上金鑰 (AIza...)">
         <input type="text" id="title" placeholder="活動名稱">
@@ -37,7 +37,7 @@
         </div>
         <div id="uploadBox">
             <input type="file" id="file" style="display:none" accept="image/*">
-            <span id="upTxt">📷 點擊上傳照片</span>
+            <span id="upTxt">📷 點擊上傳主講人照片</span>
         </div>
         <button id="genBtn">啟動 AI 智能設計</button>
         <button id="randBtn">🎲 隨機變換藝術風格</button>
@@ -91,34 +91,44 @@
             const title = document.getElementById('title').value.trim();
             const user = document.getElementById('user').value.trim();
 
-            if (!title || !user || !imgObj) return alert("請填寫所有欄位並上傳照片");
+            if (!title || !user || !imgObj) return alert("請完整填寫所有欄位並上傳照片");
 
-            status.innerText = "🤖 AI 設計師正在尋找最佳通訊路徑...";
+            status.innerText = "🤖 正在嘗試連接 AI 伺服器並切換最佳型號...";
             
             let config = { bg: "#ffffff", text: "#000000", accent: "#2563eb", slogan: "突破自我，共創未來", layout: "center" };
 
             if (key) {
-                const styles = ["梵谷", "包浩斯", "莫蘭迪", "賽博龐克", "瑞士極簡", "日系禪意"];
+                const styles = ["梵谷星夜", "包浩斯幾何", "莫蘭迪灰", "賽博龐克", "瑞士極簡", "日系禪意"];
                 const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-                const prompt = `你是一位專業設計師。活動「${title}」，講者「${user}」。${isRandom ? `風格：${randomStyle}。` : ''}請回傳 JSON：{"bg":"背景色16進位","text":"文字色16進位","accent":"強調色16進位","slogan":"8字內標語","layout":"center或split"}。嚴禁其他文字。`;
+                const prompt = `你是一位專業設計師。活動「${title}」，講者「${user}」。${isRandom ? `風格：${randomStyle}。` : ''}請決定海報設計，僅回傳 JSON：{"bg":"背景16進位色","text":"文字16進位色","accent":"強調色16進位","slogan":"8字內標語","layout":"center或split"}。嚴禁其他文字。`;
 
-                try {
-                    // 自動嘗試不同版本路徑
-                    const versions = ['v1beta', 'v1'];
-                    let response = null;
-                    let lastError = "";
+                const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+                const versions = ['v1beta', 'v1'];
+                
+                let success = false;
+                let lastError = "";
 
-                    for (let ver of versions) {
+                // 嵌套迴圈嘗試所有路徑與型號組合
+                outer: for (let ver of versions) {
+                    for (let model of models) {
                         try {
-                            const url = `https://generativelanguage.googleapis.com/${ver}/models/gemini-1.5-flash:generateContent?key=${key}`;
+                            const url = `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${key}`;
                             const res = await fetch(url, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                             });
+
                             if (res.ok) {
-                                response = res;
-                                break;
+                                const data = await res.json();
+                                const rawText = data.candidates[0].content.parts[0].text;
+                                const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                                if (jsonMatch) {
+                                    config = JSON.parse(jsonMatch[0]);
+                                    status.innerText = `✨ AI 設計成功！(使用型號: ${model})。已套用 ${isRandom ? randomStyle : '專業'} 方案。`;
+                                    success = true;
+                                    break outer;
+                                }
                             } else {
                                 const errJson = await res.json();
                                 lastError = errJson.error.message;
@@ -127,20 +137,10 @@
                             lastError = e.message;
                         }
                     }
+                }
 
-                    if (!response) throw new Error(lastError || "所有 API 路徑皆無法連線");
-
-                    const data = await response.json();
-                    const rawText = data.candidates[0].content.parts[0].text;
-                    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-                    
-                    if (jsonMatch) {
-                        config = JSON.parse(jsonMatch[0]);
-                        status.innerText = `✨ AI 設計成功！已套用 ${isRandom ? randomStyle : '專業'} 方案。`;
-                    }
-                } catch (err) {
-                    console.error(err);
-                    status.innerText = "❌ AI 串接失敗，改用預設設計。原因：" + err.message;
+                if (!success) {
+                    status.innerText = "❌ AI 串接失敗，改用預設設計。原因：" + lastError;
                 }
             } else {
                 status.innerText = "💡 未輸入金鑰，採用預設美感模式。";
@@ -182,12 +182,15 @@
 
             ctx.font = `900 ${w * 0.09}px sans-serif`;
             ctx.fillText(title, x, h * 0.18);
+            
             ctx.fillStyle = conf.accent;
             ctx.font = `bold ${w * 0.045}px sans-serif`;
             ctx.fillText(conf.slogan, x, h * 0.26);
+            
             ctx.fillStyle = conf.text;
             ctx.font = `900 ${w * 0.07}px sans-serif`;
             ctx.fillText(`主講｜${user}`, x, h * 0.36);
+
             ctx.font = `bold ${w * 0.035}px sans-serif`;
             const dateStr = document.getElementById('date').value.replace(/-/g, '/') + " " + document.getElementById('time').value;
             ctx.fillText(dateStr, x, h * 0.44);
