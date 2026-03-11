@@ -314,7 +314,7 @@
    - 如果他問「我沒時間」你要教 ${userName} 如何回覆。`;
 
             try {
-                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
                 
                 const response = await fetch(endpoint, {
                     method: 'POST',
