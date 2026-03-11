@@ -30,29 +30,31 @@
         #output h3 { font-size: 1.25rem; color: #fde047; margin-top: 1.2rem; margin-bottom: 0.5rem; border-left: 4px solid #fde047; padding-left: 0.75rem; font-weight: 700; }
         #output p { margin-bottom: 1rem; }
         
-        /* 動態高度過渡效果 */
         .slide-down { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; overflow: hidden; }
 
-        /* 愛心評分專用 CSS */
-        .heart-rating { 
-            display: inline-flex; 
-            flex-direction: row-reverse; 
-            justify-content: flex-end; 
-        }
+        .heart-rating { display: inline-flex; flex-direction: row-reverse; justify-content: flex-end; }
         .heart-rating input { display: none; }
-        .heart-rating label { 
-            cursor: pointer; 
-            font-size: 1.5rem; 
-            color: #475569; /* 預設灰色 */
-            padding: 0 0.1rem;
-            transition: color 0.2s; 
+        .heart-rating label { cursor: pointer; font-size: 1.5rem; color: #475569; padding: 0 0.1rem; transition: color 0.2s; }
+        .heart-rating label:hover, .heart-rating label:hover ~ label, .heart-rating input:checked ~ label { color: #ef4444; }
+
+        /* 隱藏的黑白截圖容器樣式 */
+        #snapshot-template {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 400px; /* 手機閱讀寬度 */
+            background: white;
+            color: black;
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.5;
         }
-        /* 利用 CSS 特性，當 hover 或 checked 時，讓本身及後方的 label(視覺上在左邊) 變色 */
-        .heart-rating label:hover,
-        .heart-rating label:hover ~ label,
-        .heart-rating input:checked ~ label {
-            color: #ef4444; /* Tailwind red-500 */
-        }
+        .bw-title { font-size: 20px; font-weight: 900; border-bottom: 2px solid black; margin-bottom: 10px; padding-bottom: 5px; }
+        .bw-section { border: 1px solid black; padding: 10px; margin-bottom: 15px; }
+        .bw-label { font-weight: bold; text-decoration: underline; margin-right: 5px; }
+        .bw-content h2 { font-size: 16px; font-weight: bold; margin-top: 10px; border-left: 4px solid black; padding-left: 8px; }
+        .bw-content h3 { font-size: 15px; font-weight: bold; margin-top: 8px; }
+        .bw-footer { font-size: 10px; text-align: center; margin-top: 20px; color: #666; }
     </style>
 </head>
 <body class="p-4 md:p-10 relative">
@@ -64,8 +66,6 @@
                 Enterprise Level AI Decision System
             </div>
             <h1 class="text-4xl md:text-6xl font-black mb-4 gold-text">招喚皇冠大使</h1>
-            
-            <!-- 動態專屬標題 -->
             <div class="text-xl md:text-2xl font-bold mt-2 text-gray-300 transition-all duration-300">
                 尊敬的 <span id="displayUserName" class="text-white border-b border-gray-600 px-2 pb-1 mx-1">夥伴</span> 
                 <span id="displayUserPin" class="text-yellow-500 mx-1">直銷商</span>
@@ -86,7 +86,6 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
             <!-- Left: Case Profile -->
             <div class="lg:col-span-5 space-y-6">
-                
                 <!-- 發問者資訊 -->
                 <div class="glass-card p-6 border-t-2 border-yellow-600">
                     <h2 class="text-lg font-bold mb-4 flex items-center text-yellow-500">
@@ -121,7 +120,6 @@
                         <span class="w-2 h-8 bg-blue-500 mr-3 rounded-full"></span>
                         潛在名單對焦
                     </h2>
-                    
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -133,36 +131,28 @@
                                 <input type="text" id="age" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="例：25-45">
                             </div>
                         </div>
-
                         <div>
                             <label class="text-xs text-gray-500 ml-1">職業現狀</label>
                             <input type="text" id="job" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="例：傳產經理、全職媽媽">
                         </div>
-
-                        <!-- 新增：信任程度愛心評分 -->
                         <div>
                             <label class="text-xs text-gray-500 ml-1">熟悉的信任程度</label>
                             <div class="flex items-center mt-1 bg-slate-900 border border-slate-700 rounded-xl p-3">
                                 <div class="heart-rating">
                                     <input type="radio" id="heart5" name="trust" value="莫逆" onchange="updateTrustText(this.value)">
                                     <label for="heart5">♥</label>
-                                    
                                     <input type="radio" id="heart4" name="trust" value="信任" onchange="updateTrustText(this.value)">
                                     <label for="heart4">♥</label>
-                                    
                                     <input type="radio" id="heart3" name="trust" value="喜歡" onchange="updateTrustText(this.value)">
                                     <label for="heart3">♥</label>
-                                    
                                     <input type="radio" id="heart2" name="trust" value="熟悉" onchange="updateTrustText(this.value)">
                                     <label for="heart2">♥</label>
-                                    
                                     <input type="radio" id="heart1" name="trust" value="陌生" onchange="updateTrustText(this.value)" checked>
                                     <label for="heart1">♥</label>
                                 </div>
                                 <span id="trustTextDisplay" class="ml-4 text-sm font-bold text-red-400">陌生</span>
                             </div>
                         </div>
-
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="text-xs text-gray-500 ml-1">已破題安麗？</label>
@@ -181,8 +171,6 @@
                                 </select>
                             </div>
                         </div>
-
-                        <!-- 邀約目標活動 (動態下拉選單) -->
                         <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
                             <label class="text-xs text-yellow-500 ml-1 font-bold">邀約目標活動</label>
                             <select id="targetEvent" onchange="handleEventChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus text-yellow-400 font-bold">
@@ -191,7 +179,7 @@
                                 <option value="營養講座">營養講座</option>
                                 <option value="美容護膚">美容護膚</option>
                                 <option value="生涯規劃營">生涯規劃營</option>
-                                <option value="新人招商大會">新人創業招商大會</option>
+                                <option value="新人招商大會">新人招商大會</option>
                                 <option value="安麗價值遠景">安麗價值遠景</option>
                                 <option value="匹克球">匹克球</option>
                                 <option value="現金流">現金流</option>
@@ -200,41 +188,32 @@
                                 <option value="生命靈數">生命靈數</option>
                                 <option value="其他">其他 (自訂)</option>
                             </select>
-
-                            <!-- 條件式顯示的細節輸入框 -->
                             <div id="eventDetailContainer" class="hidden mt-3 slide-down">
                                 <label id="eventDetailLabel" class="text-xs text-blue-400 ml-1">活動補充細節</label>
                                 <input type="text" id="eventDetail" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus text-blue-300" placeholder="">
                             </div>
                         </div>
-
                         <div>
-                            <label class="text-xs text-gray-500 ml-1">他可能有產品需求？(選擇性也可不填)</label>
+                            <label class="text-xs text-gray-500 ml-1">他可能有產品需求？</label>
                             <input type="text" id="targetProduct" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus text-blue-400 font-bold" placeholder="例：營養早餐、淨水器">
                         </div>
                     </div>
-
                     <button onclick="consultMaster()" id="actionBtn" class="w-full mt-10 py-4 btn-crown rounded-xl font-black text-white tracking-widest uppercase">
                         開始導師對焦
                     </button>
                 </div>
             </div>
 
-            <!-- Right: Crown Ambassador Output -->
+            <!-- Right: Result Area -->
             <div class="lg:col-span-7">
-                <!-- 預設畫面 -->
                 <div id="placeholder" class="glass-card h-full flex flex-col items-center justify-center p-12 text-center min-h-[500px]">
                     <div class="text-6xl mb-6 opacity-20">💼</div>
-                    <p class="text-gray-500 italic">「成功不是偶然，而是精準的佈局。<br>填寫左側資料，讓我為您的事業指點迷津。」</p>
+                    <p class="text-gray-500 italic">「成功不是偶然，而是精準的佈局。<br>填寫資料，讓我為您的事業指點迷津。」</p>
                 </div>
-
-                <!-- 載入中畫面 -->
                 <div id="loading" class="hidden glass-card h-full flex flex-col items-center justify-center p-12 min-h-[500px]">
                     <div class="inline-block w-12 h-12 border-4 border-yellow-500/30 border-t-yellow-500 rounded-full animate-spin mb-6"></div>
                     <p class="text-yellow-500 font-bold animate-pulse">正在調研全球萬人團隊數據，生成最佳話術...</p>
                 </div>
-
-                <!-- 結果畫面 (已移除標題區塊) -->
                 <div id="result" class="hidden glass-card p-8 h-full overflow-y-auto max-h-[800px] border-l-4 border-yellow-500 min-h-[500px]">
                     <div id="output" class="text-gray-300 leading-relaxed text-[1.05rem]"></div>
                 </div>
@@ -242,116 +221,102 @@
         </div>
     </div>
 
-    <!-- 儲存為圖片的懸浮按鈕 -->
-    <button id="downloadBtn" onclick="downloadPageAsJPEG()" class="fixed bottom-6 right-6 bg-slate-800 border-2 border-yellow-500/50 hover:bg-slate-700 hover:border-yellow-400 text-yellow-500 p-4 rounded-full shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all transform hover:scale-110 z-50 flex items-center justify-center group" title="儲存畫面成圖片">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    <!-- 儲存為圖片的懸浮按鈕 - 已強化視覺 -->
+    <button id="downloadBtn" onclick="prepareAndDownload()" class="hidden fixed bottom-8 right-8 bg-yellow-500 hover:bg-yellow-400 text-black px-6 py-4 rounded-full shadow-[0_10px_30px_rgba(234,179,8,0.5)] transition-all transform hover:scale-105 z-50 flex items-center font-black">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-        <span class="absolute right-full mr-4 bg-slate-900 text-yellow-500 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">存成圖片</span>
+        📸 儲存對焦結果 (圖片)
     </button>
 
+    <!-- 用於黑白截圖的隱藏模板 -->
+    <div id="snapshot-template"></div>
+
     <script>
-        // 初始化與讀取存檔
         window.onload = () => {
             const savedKey = localStorage.getItem('amway_leader_key');
             if (savedKey) document.getElementById('apiKey').value = savedKey;
-            
-            // 觸發一次事件判斷隱藏欄位
             handleEventChange();
         };
 
-        // 截圖下載功能 (長圖片)
-        async function downloadPageAsJPEG() {
-            const btn = document.getElementById('downloadBtn');
-            const resultDiv = document.getElementById('result');
+        // 核心邏輯：準備黑白內容並下載
+        async function prepareAndDownload() {
+            const outputHtml = document.getElementById('output').innerHTML;
+            const snapshotArea = document.getElementById('snapshot-template');
             
-            // 1. 隱藏下載按鈕本身，以免被截進去
-            btn.style.display = 'none'; 
-            
-            // 2. 如果結果區塊有卷軸，暫時移除高度限制，確保完整長度被截圖
-            const originalMaxHeight = resultDiv.style.maxHeight;
-            const originalOverflow = resultDiv.style.overflowY;
-            
-            if (!resultDiv.classList.contains('hidden')) {
-                resultDiv.style.maxHeight = 'none';
-                resultDiv.style.overflowY = 'visible';
-                resultDiv.classList.remove('max-h-[800px]', 'overflow-y-auto');
-            }
+            // 抓取當前輸入的資訊
+            const userName = document.getElementById('userName').value || '夥伴';
+            const userPin = document.getElementById('userPin').value;
+            const targetName = document.getElementById('name').value || '未命名';
+            const targetJob = document.getElementById('job').value || '未填寫';
+            const targetEvent = document.getElementById('targetEvent').value;
+            const trustLevel = document.querySelector('input[name="trust"]:checked')?.value || '未知';
+
+            // 組合黑白排版內容
+            snapshotArea.innerHTML = `
+                <div class="bw-title">皇冠大使對焦報告</div>
+                <div class="bw-section">
+                    <div><span class="bw-label">諮詢夥伴：</span>${userName} (${userPin})</div>
+                    <div><span class="bw-label">名單對象：</span>${targetName}</div>
+                    <div><span class="bw-label">職業背景：</span>${targetJob}</div>
+                    <div><span class="bw-label">信任程度：</span>${trustLevel}</div>
+                    <div><span class="bw-label">目標活動：</span>${targetEvent}</div>
+                </div>
+                <div class="bw-content">
+                    ${outputHtml}
+                </div>
+                <div class="bw-footer">
+                    生成日期：${new Date().toLocaleString()} | 杜杜龍 AI 對焦系統
+                </div>
+            `;
 
             try {
-                // 等待一下讓 DOM 完全展開更新
-                await new Promise(resolve => setTimeout(resolve, 150));
-
-                const canvas = await html2canvas(document.body, {
-                    scale: 2, // 提高圖片解析度
-                    useCORS: true, 
-                    windowHeight: document.documentElement.scrollHeight, // 確保抓取到完整卷軸高度
-                    backgroundColor: '#020617' // 確保背景色與 CSS 最底層一致，避免透明變黑
+                // 對隱藏的黑白區域進行截圖
+                const canvas = await html2canvas(snapshotArea, {
+                    scale: 2,
+                    backgroundColor: "#ffffff",
+                    useCORS: true
                 });
-                
-                // 轉換成 JPEG (壓縮比 0.85)
-                const imgData = canvas.toDataURL('image/jpeg', 0.85); 
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.9);
                 const link = document.createElement('a');
-                
-                // 動態產生檔名
-                const targetName = document.getElementById('name').value || '未命名名單';
                 const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-                link.download = `大師對焦_${targetName}_${dateStr}.jpg`;
-                
-                // 觸發下載
+                link.download = `對焦報告_${targetName}_${dateStr}.jpg`;
                 link.href = imgData;
                 link.click();
             } catch (error) {
                 console.error('截圖失敗:', error);
-                alert('圖片產生失敗，請稍後再試。');
-            } finally {
-                // 3. 恢復按鈕顯示
-                btn.style.display = 'flex'; 
-                // 4. 恢復結果區塊的卷軸與高度限制
-                if (!resultDiv.classList.contains('hidden')) {
-                    resultDiv.style.maxHeight = originalMaxHeight;
-                    resultDiv.style.overflowY = originalOverflow;
-                    resultDiv.classList.add('max-h-[800px]', 'overflow-y-auto');
-                }
+                alert('圖片產生失敗');
             }
         }
 
-        // 即時更新尊榮標題
         function updateGreeting() {
             const name = document.getElementById('userName').value.trim() || '夥伴';
             const pin = document.getElementById('userPin').value;
-            
             document.getElementById('displayUserName').innerText = name;
             document.getElementById('displayUserPin').innerText = pin;
         }
 
-        // 更新愛心文字顯示
         function updateTrustText(val) {
             document.getElementById('trustTextDisplay').innerText = val;
         }
 
-        // 處理活動下拉選單的連動邏輯
         function handleEventChange() {
             const eventVal = document.getElementById('targetEvent').value;
             const container = document.getElementById('eventDetailContainer');
             const detailInput = document.getElementById('eventDetail');
             const detailLabel = document.getElementById('eventDetailLabel');
 
-            if (eventVal === '其他') {
+            if (eventVal === '其他' || eventVal === '營養講座') {
                 container.classList.remove('hidden');
-                detailLabel.innerText = '請輸入自訂活動名稱';
-                detailInput.placeholder = '例如：家庭聚會、讀書會...';
-            } else if (eventVal === '營養講座') {
-                container.classList.remove('hidden');
-                detailLabel.innerText = '請填寫營養講座主題';
-                detailInput.placeholder = '例如：腸道健康與免疫力、減脂抗老...';
+                detailLabel.innerText = eventVal === '其他' ? '請輸入自訂活動名稱' : '請填寫營養講座主題';
             } else {
                 container.classList.add('hidden');
-                detailInput.value = ''; // 隱藏時清空內容
+                detailInput.value = '';
             }
         }
 
-        // 儲存 API Key
         function saveKey() {
             const key = document.getElementById('apiKey').value.trim();
             if (!key) return alert("請先輸入 API Key！");
@@ -359,7 +324,6 @@
             alert("✅ 權限已獲取，皇冠大使隨時待命。");
         }
 
-        // 呼叫 AI API
         async function consultMaster() {
             const key = document.getElementById('apiKey').value.trim();
             if (!key) return alert("請輸入引擎密鑰 (API Key)！");
@@ -369,89 +333,46 @@
             const loading = document.getElementById('loading');
             const result = document.getElementById('result');
             const output = document.getElementById('output');
+            const downloadBtn = document.getElementById('downloadBtn');
 
             btn.disabled = true;
             placeholder.classList.add('hidden');
             result.classList.add('hidden');
+            downloadBtn.classList.add('hidden');
             loading.classList.remove('hidden');
 
-            // 整合發問者資訊
             const userName = document.getElementById('userName').value.trim() || '夥伴';
             const userPin = document.getElementById('userPin').value;
-
-            // 整合活動資訊
             const baseEvent = document.getElementById('targetEvent').value;
             const eventDetail = document.getElementById('eventDetail').value.trim();
-            let finalTargetEvent = baseEvent;
+            let finalTargetEvent = (baseEvent === '其他' || baseEvent === '營養講座') ? (eventDetail || baseEvent) : baseEvent;
+            const trustLevel = document.querySelector('input[name="trust"]:checked')?.value || '陌生';
+
+            const prompt = `你是一位在安麗事業極度成功的皇冠大使，你的對話風格「接地氣、平易近人、口語化、溫暖」。
+            現在一位獎銜為「${userPin}」的夥伴「${userName}」向你請教。
+            針對名單「${document.getElementById('name').value}」(${document.getElementById('job').value})，信任度為「${trustLevel}」，安麗破題現狀為「${document.getElementById('isRevealed').value}」。
             
-            if (baseEvent === '其他') {
-                finalTargetEvent = eventDetail ? eventDetail : '特別活動';
-            } else if (baseEvent === '營養講座') {
-                finalTargetEvent = eventDetail ? `營養講座 (主題：${eventDetail})` : '營養講座';
-            }
-
-            // 取得選擇的信任程度
-            const trustLevelElement = document.querySelector('input[name="trust"]:checked');
-            const trustLevel = trustLevelElement ? trustLevelElement.value : '陌生';
-
-            const data = {
-                name: document.getElementById('name').value || '朋友',
-                age: document.getElementById('age').value || '不詳',
-                job: document.getElementById('job').value || '一般職業',
-                trustLevel: trustLevel,
-                isRevealed: document.getElementById('isRevealed').value,
-                metUpline: document.getElementById('metUpline').value,
-                targetEvent: finalTargetEvent,
-                targetProduct: document.getElementById('targetProduct').value || '紐崔萊基礎營養'
-            };
-
-            // 優化後的 Prompt，加入發問者背景與信任程度
-            const prompt = `你是一位在安麗事業極度成功的皇冠大使，帶領萬人團隊，資產數億兆。你的對話風格「接地氣、平易近人、口語化、溫暖」，絕不讓人感到勉強。
-現在有一位你的團隊夥伴向你請教，他叫「${userName}」，目前的獎銜是「${userPin}」。
-
-【你的任務】：
-第一步：請先用 1 句話溫暖地稱呼 ${userName} 並鼓勵他（例如：大偉白金，看到你這麼積極列名單，未來的皇冠大使非你莫屬...）。
-第二步：針對他提出的潛在名單，給出一段「一問一答」的對焦建議稿。這段建議稿必須「精簡扼要，適合用電話在 30 秒內說完」，並針對你們目前的「信任程度」拿捏說話的尺度，讓對方聽完後產生好奇心、提高意願！
-
-【潛在名單資訊】：
-顧客姓名：${data.name}
-背景：${data.age}歲，從事${data.job}
-與對方的信任程度：${data.trustLevel} (請根據此程度調整語氣，陌生要客氣但有吸引力，莫逆可以直接熱情)
-現狀：安麗破題(${data.isRevealed})、見過領導人(${data.metUpline})
-目標活動：${data.targetEvent}
-對方可能需要的產品：${data.targetProduct}
-
-請按以下邏輯為 ${userName} 撰寫對話建議（請使用繁體中文排版）：
-1. **破冰與關心**：如何自然開啟話題，並帶入關心。
-2. **邀約活動話術**：如何順水推舟地邀約他參加「${data.targetEvent}」。
-3. **抗拒處理 (模擬情境)**：
-   - 如果他問「是不是直銷/安麗？」你要教 ${userName} 如何溫暖且有底氣地回覆。
-   - 如果他問「我沒時間」你要教 ${userName} 如何回覆。`;
+            請提供：
+            1. 給${userName}的鼓勵 (1句)。
+            2. 適合電話或語音的 30 秒邀約「${finalTargetEvent}」建議稿。
+            3. 抗拒處理：若對方問「是安麗嗎？」或「我剛好有事很忙沒時間」或「沒興趣」該如何溫暖回應，回應原則是讓對方喜歡我，讓對方感到舒服，且不勉強。
+            (請用繁體中文，善用粗體與標題排版)`;
 
             try {
                 const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
-                
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { temperature: 0.7 }
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
 
                 const json = await response.json();
-                if (json.error) throw new Error(json.error.message);
-                
-                if (!json.candidates || json.candidates.length === 0) {
-                    throw new Error("API 未回傳有效內容，可能被安全審查阻擋，請更換關鍵字。");
-                }
-
                 const text = json.candidates[0].content.parts[0].text;
 
                 output.innerHTML = formatAIResponse(text);
                 loading.classList.add('hidden');
                 result.classList.remove('hidden');
+                downloadBtn.classList.remove('hidden');
 
             } catch (err) {
                 alert("連線失敗：" + err.message);
@@ -472,9 +393,7 @@
                 .replace(/\n\n/g, '</p><p>')
                 .replace(/\n/g, '<br>')
                 .replace(/^/, '<p>')
-                .replace(/$/, '</p>')
-                .replace(/<p><\/p>/g, '')
-                .replace(/<p><br><\/p>/g, '');
+                .replace(/$/, '</p>');
         }
     </script>
 </body>
