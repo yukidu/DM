@@ -30,6 +30,27 @@
         
         /* 動態高度過渡效果 */
         .slide-down { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; overflow: hidden; }
+
+        /* 愛心評分專用 CSS */
+        .heart-rating { 
+            display: inline-flex; 
+            flex-direction: row-reverse; 
+            justify-content: flex-end; 
+        }
+        .heart-rating input { display: none; }
+        .heart-rating label { 
+            cursor: pointer; 
+            font-size: 1.5rem; 
+            color: #475569; /* 預設灰色 */
+            padding: 0 0.1rem;
+            transition: color 0.2s; 
+        }
+        /* 利用 CSS 特性，當 hover 或 checked 時，讓本身及後方的 label(視覺上在左邊) 變色 */
+        .heart-rating label:hover,
+        .heart-rating label:hover ~ label,
+        .heart-rating input:checked ~ label {
+            color: #ef4444; /* Tailwind red-500 */
+        }
     </style>
 </head>
 <body class="p-4 md:p-10">
@@ -116,6 +137,30 @@
                             <input type="text" id="job" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="例：傳產經理、全職媽媽">
                         </div>
 
+                        <!-- 新增：信任程度愛心評分 -->
+                        <div>
+                            <label class="text-xs text-gray-500 ml-1">熟悉的信任程度</label>
+                            <div class="flex items-center mt-1 bg-slate-900 border border-slate-700 rounded-xl p-3">
+                                <div class="heart-rating">
+                                    <input type="radio" id="heart5" name="trust" value="莫逆" onchange="updateTrustText(this.value)">
+                                    <label for="heart5">♥</label>
+                                    
+                                    <input type="radio" id="heart4" name="trust" value="信任" onchange="updateTrustText(this.value)">
+                                    <label for="heart4">♥</label>
+                                    
+                                    <input type="radio" id="heart3" name="trust" value="喜歡" onchange="updateTrustText(this.value)">
+                                    <label for="heart3">♥</label>
+                                    
+                                    <input type="radio" id="heart2" name="trust" value="熟悉" onchange="updateTrustText(this.value)">
+                                    <label for="heart2">♥</label>
+                                    
+                                    <input type="radio" id="heart1" name="trust" value="陌生" onchange="updateTrustText(this.value)" checked>
+                                    <label for="heart1">♥</label>
+                                </div>
+                                <span id="trustTextDisplay" class="ml-4 text-sm font-bold text-red-400">陌生</span>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="text-xs text-gray-500 ml-1">已破題安麗？</label>
@@ -123,6 +168,7 @@
                                     <option value="否">尚未破題</option>
                                     <option value="是，但不深">已破題，但未深入</option>
                                     <option value="是，有抗拒">已破題，有抗拒感</option>
+                                    <option value="已破題，曾使用產品">已破題，曾使用產品</option>
                                 </select>
                             </div>
                             <div>
@@ -221,6 +267,11 @@
             document.getElementById('displayUserPin').innerText = pin;
         }
 
+        // 更新愛心文字顯示
+        function updateTrustText(val) {
+            document.getElementById('trustTextDisplay').innerText = val;
+        }
+
         // 處理活動下拉選單的連動邏輯
         function handleEventChange() {
             const eventVal = document.getElementById('targetEvent').value;
@@ -281,27 +332,33 @@
                 finalTargetEvent = eventDetail ? `營養講座 (主題：${eventDetail})` : '營養講座';
             }
 
+            // 取得選擇的信任程度
+            const trustLevelElement = document.querySelector('input[name="trust"]:checked');
+            const trustLevel = trustLevelElement ? trustLevelElement.value : '陌生';
+
             const data = {
                 name: document.getElementById('name').value || '朋友',
                 age: document.getElementById('age').value || '不詳',
                 job: document.getElementById('job').value || '一般職業',
+                trustLevel: trustLevel,
                 isRevealed: document.getElementById('isRevealed').value,
                 metUpline: document.getElementById('metUpline').value,
                 targetEvent: finalTargetEvent,
                 targetProduct: document.getElementById('targetProduct').value || '紐崔萊基礎營養'
             };
 
-            // 優化後的 Prompt，加入發問者背景讓對話更真實溫暖
+            // 優化後的 Prompt，加入發問者背景與信任程度
             const prompt = `你是一位在安麗事業極度成功的皇冠大使，帶領萬人團隊，資產數億兆。你的對話風格「接地氣、平易近人、口語化、溫暖」，絕不讓人感到勉強。
 現在有一位你的團隊夥伴向你請教，他叫「${userName}」，目前的獎銜是「${userPin}」。
 
 【你的任務】：
 第一步：請先用 1 句話溫暖地稱呼 ${userName} 並鼓勵他（例如：大偉白金，看到你這麼積極列名單，未來的皇冠大使非你莫屬...）。
-第二步：針對他提出的潛在名單，給出一段「一問一答」的對焦建議稿。這段建議稿必須「精簡扼要，適合用電話在 30 秒內說完」，讓對方聽完後產生好奇心、提高意願！
+第二步：針對他提出的潛在名單，給出一段「一問一答」的對焦建議稿。這段建議稿必須「精簡扼要，適合用電話在 30 秒內說完」，並針對你們目前的「信任程度」拿捏說話的尺度，讓對方聽完後產生好奇心、提高意願！
 
 【潛在名單資訊】：
 顧客姓名：${data.name}
 背景：${data.age}歲，從事${data.job}
+與對方的信任程度：${data.trustLevel} (請根據此程度調整語氣，陌生要客氣但有吸引力，莫逆可以直接熱情)
 現狀：安麗破題(${data.isRevealed})、見過領導人(${data.metUpline})
 目標活動：${data.targetEvent}
 目標推薦產品：${data.targetProduct}
