@@ -22,9 +22,14 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .btn-crown:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(217, 119, 6, 0.4); }
-        .typing-effect { overflow: hidden; border-right: .15em solid orange; white-space: nowrap; animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite; }
+        
         #output b { color: #facc15; font-weight: 700; }
-        #output h3 { font-size: 1.5rem; color: #fde047; margin-top: 1.5rem; margin-bottom: 1rem; border-left: 4px solid #fde047; padding-left: 1rem; }
+        #output h2 { font-size: 1.5rem; color: #eab308; font-weight: 900; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        #output h3 { font-size: 1.25rem; color: #fde047; margin-top: 1.2rem; margin-bottom: 0.5rem; border-left: 4px solid #fde047; padding-left: 0.75rem; font-weight: 700; }
+        #output p { margin-bottom: 1rem; }
+        
+        /* 動態高度過渡效果 */
+        .slide-down { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; overflow: hidden; }
     </style>
 </head>
 <body class="p-4 md:p-10">
@@ -35,47 +40,80 @@
             <div class="inline-block px-4 py-1 mb-4 border border-yellow-500/50 rounded-full text-yellow-500 text-xs tracking-widest uppercase">
                 Enterprise Level AI Decision System
             </div>
-            <h1 class="text-5xl md:text-6xl font-black mb-6 gold-text">招喚皇冠大使(杜杜龍設計)</h1>
-            <p class="text-gray-400 text-lg max-w-2xl mx-auto">
-                「我們不只是在分享產品，我們是在邀請人們進入一個更高維度的生活方式。」
-            </p>
+            <h1 class="text-4xl md:text-6xl font-black mb-4 gold-text">招喚皇冠大使 <span class="text-2xl md:text-4xl">(杜杜龍設計)</span></h1>
+            
+            <!-- 動態專屬標題 -->
+            <div class="text-xl md:text-2xl font-bold mt-2 text-gray-300 transition-all duration-300">
+                尊敬的 <span id="displayUserName" class="text-white border-b border-gray-600 px-2 pb-1 mx-1">夥伴</span> 
+                <span id="displayUserPin" class="text-yellow-500 mx-1">直銷商</span>，未來的皇冠大使 👑
+            </div>
         </header>
 
-        <!-- API Entry (Encrypted Feel) -->
+        <!-- API Entry -->
         <div class="glass-card p-6 mb-10 flex flex-col md:flex-row items-center justify-between gap-4 border-yellow-500/20 shadow-[0_0_50px_rgba(234,179,8,0.05)]">
             <div class="flex-1 w-full">
                 <label class="text-[10px] uppercase tracking-tighter text-yellow-500/70 mb-1 block">在此輸入密碼，找杜杜龍索取</label>
                 <input type="password" id="apiKey" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm input-focus" placeholder="請輸入 API Key...">
             </div>
-            <button onclick="saveKey()" class="w-full md:w-auto px-8 py-3 bg-slate-800 border border-slate-600 rounded-lg text-sm font-bold hover:bg-slate-700 transition">
-                驗證身分
+            <button onclick="saveKey()" class="w-full md:w-auto px-8 py-3 bg-slate-800 border border-slate-600 rounded-lg text-sm font-bold hover:bg-slate-700 transition text-yellow-500">
+                驗證身分 / 儲存密鑰
             </button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
             <!-- Left: Case Profile -->
             <div class="lg:col-span-5 space-y-6">
+                
+                <!-- 發問者資訊 -->
+                <div class="glass-card p-6 border-t-2 border-yellow-600">
+                    <h2 class="text-lg font-bold mb-4 flex items-center text-yellow-500">
+                        <span class="text-xl mr-2">👤</span> 我的資訊
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-gray-400 ml-1">你的名字</label>
+                            <input type="text" id="userName" oninput="updateGreeting()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="例: 大偉">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 ml-1">目前獎銜</label>
+                            <select id="userPin" onchange="updateGreeting()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus text-yellow-200">
+                                <option value="直銷商">直銷商</option>
+                                <option value="銅獎章">銅獎章</option>
+                                <option value="銀獎章">銀獎章</option>
+                                <option value="金獎章">金獎章</option>
+                                <option value="白金 (DD)">白金 (DD)</option>
+                                <option value="創辦人白金">創辦人白金</option>
+                                <option value="藍寶石">藍寶石</option>
+                                <option value="翡翠">翡翠</option>
+                                <option value="鑽石">鑽石</option>
+                                <option value="執行專員">執行專員</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 潛在名單資訊 -->
                 <div class="glass-card p-8">
                     <h2 class="text-xl font-bold mb-6 flex items-center">
-                        <span class="w-2 h-8 bg-yellow-500 mr-3 rounded-full"></span>
+                        <span class="w-2 h-8 bg-blue-500 mr-3 rounded-full"></span>
                         潛在名單對焦
                     </h2>
                     
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="text-xs text-gray-500 ml-1">姓名</label>
-                                <input type="text" id="name" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="林先生">
+                                <label class="text-xs text-gray-500 ml-1">顧客姓名/稱呼</label>
+                                <input type="text" id="name" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="例：林先生">
                             </div>
                             <div>
-                                <label class="text-xs text-gray-500 ml-1">年齡(或年齡段區間)</label>
-                                <input type="text" id="age" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="25-45">
+                                <label class="text-xs text-gray-500 ml-1">年齡 (或區間)</label>
+                                <input type="text" id="age" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="例：25-45">
                             </div>
                         </div>
 
                         <div>
                             <label class="text-xs text-gray-500 ml-1">職業現狀</label>
-                            <input type="text" id="job" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="例如：傳產經理、全職媽媽">
+                            <input type="text" id="job" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus" placeholder="例：傳產經理、全職媽媽">
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -96,9 +134,30 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="text-xs text-gray-500 ml-1">邀約目標活動</label>
-                            <input type="text" id="targetEvent" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus text-yellow-400 font-bold" placeholder="例:商業餐會 招商大會 OPP 營養 美容">
+                        <!-- 邀約目標活動 (動態下拉選單) -->
+                        <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                            <label class="text-xs text-yellow-500 ml-1 font-bold">邀約目標活動</label>
+                            <select id="targetEvent" onchange="handleEventChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus text-yellow-400 font-bold">
+                                <option value="健康管理45天">健康管理45天</option>
+                                <option value="商業餐會">商業餐會</option>
+                                <option value="營養講座">營養講座</option>
+                                <option value="美容護膚">美容護膚</option>
+                                <option value="生涯規劃營">生涯規劃營</option>
+                                <option value="新人招商大會">新人招商大會</option>
+                                <option value="安麗價值遠景">安麗價值遠景</option>
+                                <option value="匹克球">匹克球</option>
+                                <option value="現金流">現金流</option>
+                                <option value="卡八拉">卡八拉</option>
+                                <option value="星座">星座</option>
+                                <option value="生命靈數">生命靈數</option>
+                                <option value="其他">其他 (自訂)</option>
+                            </select>
+
+                            <!-- 條件式顯示的細節輸入框 -->
+                            <div id="eventDetailContainer" class="hidden mt-3 slide-down">
+                                <label id="eventDetailLabel" class="text-xs text-blue-400 ml-1">活動補充細節</label>
+                                <input type="text" id="eventDetail" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mt-1 input-focus text-blue-300" placeholder="">
+                            </div>
                         </div>
 
                         <div>
@@ -115,47 +174,84 @@
 
             <!-- Right: Crown Ambassador Output -->
             <div class="lg:col-span-7">
-                <div id="placeholder" class="glass-card h-full flex flex-col items-center justify-center p-12 text-center">
+                <!-- 預設畫面 -->
+                <div id="placeholder" class="glass-card h-full flex flex-col items-center justify-center p-12 text-center min-h-[500px]">
                     <div class="text-6xl mb-6 opacity-20">💼</div>
                     <p class="text-gray-500 italic">「成功不是偶然，而是精準的佈局。<br>填寫左側資料，讓我為您的事業指點迷津。」</p>
                 </div>
 
-                <div id="loading" class="hidden glass-card h-full flex flex-col items-center justify-center p-12">
+                <!-- 載入中畫面 -->
+                <div id="loading" class="hidden glass-card h-full flex flex-col items-center justify-center p-12 min-h-[500px]">
                     <div class="inline-block w-12 h-12 border-4 border-yellow-500/30 border-t-yellow-500 rounded-full animate-spin mb-6"></div>
                     <p class="text-yellow-500 font-bold animate-pulse">正在調研全球萬人團隊數據，生成最佳話術...</p>
                 </div>
 
-                <div id="result" class="hidden glass-card p-10 h-full overflow-y-auto max-h-[800px] border-l-4 border-yellow-500">
-                    <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                <!-- 結果畫面 -->
+                <div id="result" class="hidden glass-card p-8 h-full overflow-y-auto max-h-[800px] border-l-4 border-yellow-500 min-h-[500px]">
+                    <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4 sticky top-0 bg-[#1e293b]/90 backdrop-blur-md pt-2">
                         <div class="flex items-center">
-                            <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-black font-black mr-3">👑</div>
+                            <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-black font-black mr-3 shadow-[0_0_15px_rgba(234,179,8,0.5)]">👑</div>
                             <span class="text-xl font-bold">大師策略建議稿</span>
                         </div>
-                        <span class="text-[10px] text-gray-500">Engine: Gemini 2.0 Flash</span>
+                        <span class="text-[10px] text-gray-500 bg-slate-800 px-2 py-1 rounded">Engine: Gemini 2.0 Flash</span>
                     </div>
-                    <div id="output" class="text-gray-300 leading-relaxed text-lg"></div>
+                    <div id="output" class="text-gray-300 leading-relaxed text-[1.05rem]"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 儲存 API Key 到瀏覽器紀錄
+        // 初始化與讀取存檔
         window.onload = () => {
-            const saved = localStorage.getItem('amway_leader_key');
-            if (saved) {
-                document.getElementById('apiKey').value = saved;
-            }
+            const savedKey = localStorage.getItem('amway_leader_key');
+            if (savedKey) document.getElementById('apiKey').value = savedKey;
+            
+            // 觸發一次事件判斷隱藏欄位
+            handleEventChange();
         };
 
+        // 即時更新尊榮標題
+        function updateGreeting() {
+            const name = document.getElementById('userName').value.trim() || '夥伴';
+            const pin = document.getElementById('userPin').value;
+            
+            document.getElementById('displayUserName').innerText = name;
+            document.getElementById('displayUserPin').innerText = pin;
+        }
+
+        // 處理活動下拉選單的連動邏輯
+        function handleEventChange() {
+            const eventVal = document.getElementById('targetEvent').value;
+            const container = document.getElementById('eventDetailContainer');
+            const detailInput = document.getElementById('eventDetail');
+            const detailLabel = document.getElementById('eventDetailLabel');
+
+            if (eventVal === '其他') {
+                container.classList.remove('hidden');
+                detailLabel.innerText = '請輸入自訂活動名稱';
+                detailInput.placeholder = '例如：家庭聚會、讀書會...';
+            } else if (eventVal === '營養講座') {
+                container.classList.remove('hidden');
+                detailLabel.innerText = '請填寫營養講座主題';
+                detailInput.placeholder = '例如：腸道健康與免疫力、減脂抗老...';
+            } else {
+                container.classList.add('hidden');
+                detailInput.value = ''; // 隱藏時清空內容
+            }
+        }
+
+        // 儲存 API Key
         function saveKey() {
-            const key = document.getElementById('apiKey').value;
+            const key = document.getElementById('apiKey').value.trim();
+            if (!key) return alert("請先輸入 API Key！");
             localStorage.setItem('amway_leader_key', key);
             alert("✅ 權限已獲取，皇冠大使隨時待命。");
         }
 
+        // 呼叫 AI API
         async function consultMaster() {
-            const key = document.getElementById('apiKey').value;
+            const key = document.getElementById('apiKey').value.trim();
             if (!key) return alert("請輸入引擎密鑰 (API Key)！");
 
             const btn = document.getElementById('actionBtn');
@@ -169,43 +265,73 @@
             result.classList.add('hidden');
             loading.classList.remove('hidden');
 
+            // 整合發問者資訊
+            const userName = document.getElementById('userName').value.trim() || '夥伴';
+            const userPin = document.getElementById('userPin').value;
+
+            // 整合活動資訊
+            const baseEvent = document.getElementById('targetEvent').value;
+            const eventDetail = document.getElementById('eventDetail').value.trim();
+            let finalTargetEvent = baseEvent;
+            
+            if (baseEvent === '其他') {
+                finalTargetEvent = eventDetail ? eventDetail : '特別活動';
+            } else if (baseEvent === '營養講座') {
+                finalTargetEvent = eventDetail ? `營養講座 (主題：${eventDetail})` : '營養講座';
+            }
+
             const data = {
                 name: document.getElementById('name').value || '朋友',
                 age: document.getElementById('age').value || '不詳',
                 job: document.getElementById('job').value || '一般職業',
                 isRevealed: document.getElementById('isRevealed').value,
                 metUpline: document.getElementById('metUpline').value,
-                targetEvent: document.getElementById('targetEvent').value || '線下分享會',
+                targetEvent: finalTargetEvent,
                 targetProduct: document.getElementById('targetProduct').value || '紐崔萊基礎營養'
             };
 
-            const prompt = `你是一位在安麗事業極度成功的皇冠大使，帶領萬人團隊，資產數億兆。不要讓對方感到勉強或不舒服，台詞文字不要誇張，文字要符合「接地氣、平易近人、口語化、溫暖」，產生的文字要適合用電話說、精簡扼要30秒內能說完」，讓用戶聽完後產生好奇心、提高意願！
+            // 優化後的 Prompt，加入發問者背景讓對話更真實溫暖
+            const prompt = `你是一位在安麗事業極度成功的皇冠大使，帶領萬人團隊，資產數億兆。你的對話風格「接地氣、平易近人、口語化、溫暖」，絕不讓人感到勉強。
+現在有一位你的團隊夥伴向你請教，他叫「${userName}」，目前的獎銜是「${userPin}」。
 
-請針對以下對象，給出一段「一問一答」的對焦建議：
-對象姓名：${data.name}
+【你的任務】：
+第一步：請先用 1 句話溫暖地稱呼 ${userName} 並鼓勵他（例如：大偉白金，看到你這麼積極列名單，未來的皇冠大使非你莫屬...）。
+第二步：針對他提出的潛在名單，給出一段「一問一答」的對焦建議稿。這段建議稿必須「精簡扼要，適合用電話在 30 秒內說完」，讓對方聽完後產生好奇心、提高意願！
+
+【潛在名單資訊】：
+顧客姓名：${data.name}
 背景：${data.age}歲，從事${data.job}
 現狀：安麗破題(${data.isRevealed})、見過領導人(${data.metUpline})
 目標活動：${data.targetEvent}
 目標推薦產品：${data.targetProduct}
 
-請按以下邏輯撰寫：
-3. **邀約活動話術**：如何自然地帶到「${data.targetEvent}」。
-4. **模擬情境處理 (抗拒處理)**：
-   - 如果他問「是不是直銷/安麗？」你要如何回覆。
-   - 如果他問「我沒時間」你要如何回覆。
-   `;
+請按以下邏輯為 ${userName} 撰寫對話建議（請使用繁體中文排版）：
+1. **破冰與關心**：如何自然開啟話題，並帶入關心。
+2. **切入需求/產品**：如何自然帶到「${data.targetProduct}」，引發他的興趣。
+3. **邀約活動話術**：如何順水推舟地邀約他參加「${data.targetEvent}」。
+4. **抗拒處理 (模擬情境)**：
+   - 如果他問「是不是直銷/安麗？」你要教 ${userName} 如何溫暖且有底氣地回覆。
+   - 如果他問「我沒時間」你要教 ${userName} 如何回覆。`;
 
             try {
-             // 使用 Gemini 3.1 Flash Lite 節點
-const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-});
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.7 }
+                    })
+                });
 
                 const json = await response.json();
                 if (json.error) throw new Error(json.error.message);
                 
+                if (!json.candidates || json.candidates.length === 0) {
+                    throw new Error("API 未回傳有效內容，可能被安全審查阻擋，請更換關鍵字。");
+                }
+
                 const text = json.candidates[0].content.parts[0].text;
 
                 output.innerHTML = formatAIResponse(text);
@@ -218,15 +344,22 @@ const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/m
                 placeholder.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
+                btn.innerHTML = "重新對焦";
             }
         }
 
         function formatAIResponse(text) {
             return text
-                .replace(/\n/g, '<br>')
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gim, '<h2>$1</h2>')
                 .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-                .replace(/### (.*?)/g, '<h3>$1</h3>')
-                .replace(/# (.*?)/g, '<h2 class="text-2xl font-black text-yellow-500">$1</h2>');
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>')
+                .replace(/^/, '<p>')
+                .replace(/$/, '</p>')
+                .replace(/<p><\/p>/g, '')
+                .replace(/<p><br><\/p>/g, '');
         }
     </script>
 </body>
